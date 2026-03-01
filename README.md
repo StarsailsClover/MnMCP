@@ -4,7 +4,7 @@ MnMCP (Minecraft and MiniWorld Creata Cross-Platform Cross-Play) 项目官方介
 
 ## 网站地址
 
-- **GitHub Pages**: https://starsailsclover.github.io/MnMCP-Introducing-Website/
+- **GitHub Pages**: https://starsailsclover.github.io/MnMCP/
 
 ## 功能特性
 
@@ -69,6 +69,9 @@ npx live-server
 - 📱 响应式布局
 - ✨ 粒子动画和滚动动画
 - 🔗 GitHub 集成
+
+### v1.4.0
+- 文档编辑器
 
 ## 贡献
 
