@@ -1,10 +1,14 @@
 :root {
     --color-primary: #0071e3;
+    --color-primary-hover: #0077ed;
     --color-bg: #ffffff;
     --color-bg-secondary: #f5f5f7;
+    --color-bg-tertiary: #f8fafc;
     --color-text: #1d1d1f;
     --color-text-secondary: #6e6e73;
     --color-border: #d2d2d7;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.1);
     --header-height: 60px;
     --toolbar-height: 50px;
 }
@@ -19,14 +23,17 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
     color: var(--color-text);
     background-color: var(--color-bg);
+    background-image: radial-gradient(circle at 0% 0%, rgba(0, 113, 227, 0.08), transparent 42%);
     overflow: hidden;
 }
 
 /* ==================== 顶部工具栏 ==================== */
 .editor-header {
     height: var(--header-height);
-    background-color: var(--color-bg);
-    border-bottom: 1px solid var(--color-border);
+    background-color: rgba(255, 255, 255, 0.84);
+    backdrop-filter: saturate(180%) blur(16px);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: var(--shadow-sm);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -62,7 +69,8 @@ body {
 #docTitle {
     width: 100%;
     padding: 8px 16px;
-    border: 1px solid var(--color-border);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    background-color: rgba(255, 255, 255, 0.8);
     border-radius: 8px;
     font-size: 14px;
     outline: none;
@@ -70,6 +78,7 @@ body {
 
 #docTitle:focus {
     border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12);
 }
 
 .btn-icon {
@@ -95,17 +104,18 @@ body {
     cursor: pointer;
     font-weight: 500;
     transition: opacity 0.2s;
+    box-shadow: 0 10px 24px rgba(0, 113, 227, 0.24);
 }
 
 .btn-primary:hover {
-    opacity: 0.9;
+    background-color: var(--color-primary-hover);
 }
 
 /* ==================== 工具栏 ==================== */
 .toolbar {
     height: var(--toolbar-height);
-    background-color: var(--color-bg-secondary);
-    border-bottom: 1px solid var(--color-border);
+    background-color: rgba(245, 245, 247, 0.86);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
     display: flex;
     align-items: center;
     padding: 0 20px;
@@ -127,8 +137,8 @@ body {
 
 .toolbar-btn {
     padding: 6px 12px;
-    background: white;
-    border: 1px solid var(--color-border);
+    background: linear-gradient(180deg, #ffffff 0%, var(--color-bg-tertiary) 100%);
+    border: 1px solid rgba(15, 23, 42, 0.1);
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
@@ -139,8 +149,9 @@ body {
 }
 
 .toolbar-btn:hover {
-    background-color: var(--color-bg-secondary);
+    background: #ffffff;
     border-color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
 }
 
 .toolbar-btn svg {
@@ -175,7 +186,7 @@ body {
 }
 
 .preview-pane {
-    background-color: var(--color-bg-secondary);
+    background: linear-gradient(180deg, #eef4ff 0%, #f5f5f7 100%);
     overflow-y: auto;
 }
 
@@ -183,7 +194,8 @@ body {
     max-width: 800px;
     margin: 0 auto;
     padding: 40px 20px;
-    background-color: white;
+    background: #ffffff;
+    border-left: 1px solid rgba(15, 23, 42, 0.08);
     min-height: 100%;
 }
 
@@ -194,6 +206,10 @@ body {
     margin-bottom: 16px;
     padding-bottom: 8px;
     border-bottom: 2px solid var(--color-border);
+    background: linear-gradient(135deg, var(--color-text) 0%, var(--color-primary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .preview-content h2 {
@@ -234,7 +250,7 @@ body {
 }
 
 .preview-content pre {
-    background-color: #0d1117;
+    background: linear-gradient(135deg, #0f172a 0%, #172554 100%);
     padding: 16px;
     border-radius: 8px;
     overflow-x: auto;
@@ -283,8 +299,9 @@ body {
     top: calc(var(--header-height) + var(--toolbar-height));
     bottom: 0;
     width: 300px;
-    background-color: white;
-    border-left: 1px solid var(--color-border);
+    background-color: #ffffff;
+    border-left: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: -10px 0 28px rgba(15, 23, 42, 0.08);
     transform: translateX(100%);
     transition: transform 0.3s;
     z-index: 100;
@@ -300,8 +317,8 @@ body {
     top: 20px;
     width: 40px;
     height: 40px;
-    background-color: white;
-    border: 1px solid var(--color-border);
+    background: linear-gradient(180deg, #ffffff 0%, var(--color-bg-tertiary) 100%);
+    border: 1px solid rgba(15, 23, 42, 0.1);
     border-right: none;
     border-radius: 8px 0 0 8px;
     cursor: pointer;
