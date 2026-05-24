@@ -1,0 +1,37 @@
+[package]
+name = "mnmcp-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core library for MnMCP - MiniWorld to Minecraft Protocol Bridge"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# Networking
+tokio-tungstenite = "0.21"
+hyper = { version = "1.0", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Crypto
+ring = "0.17"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Protocol buffers (for MiniWorld protocol)
+prost = "0.12"
+
+[dev-dependencies]
+tokio-test = "0.4"

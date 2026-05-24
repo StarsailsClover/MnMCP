@@ -1,86 +1,149 @@
-# MnMCP 官方网站
+# MnMCP - MiniWorld Minecraft Connection Protocol
 
-MnMCP (Minecraft and MiniWorld Creata Cross-Platform Cross-Play) 项目官方介绍网站。
+MnMCP is an open-source protocol bridge that enables seamless connection between MiniWorld game rooms and Minecraft servers.
 
-## 网站地址
+## Features
 
-- **GitHub Pages**: https://starsailsclover.github.io/MnMCP/
+- **Protocol Translation**: Converts between MiniWorld WebSocket protocol and Minecraft protocol
+- **Multi-Language Support**: Core implementations in Python, Rust, Go, and TypeScript
+- **Room Bridging**: Map MiniWorld rooms to Minecraft servers
+- **Fake Authentication**: Local auth server for testing
+- **Flexible Configuration**: YAML-based configuration with Clash integration
+- **Cross-Platform**: Windows batch scripts for easy setup
 
-## 功能特性
+## Quick Start
 
-- 🎨 现代化响应式设计
-- 📱 完美移动端适配
-- 🌈 渐变色主题设计
-- ⚡ 纯 HTML/CSS/JS，无需构建工具
-- 🔗 GitHub 集成
-- 🌟 粒子动画效果
-- 📊 滚动动画效果
-- 🎯 平滑滚动导航
+### Prerequisites
 
-## 页面结构
+- Python 3.14+
+- (Optional) Rust toolchain for Rust components
+- (Optional) Go for Go server components
+- (Optional) Node.js for web components
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/MnMCP.git
+cd MnMCP
+```
+
+2. Install Python dependencies:
+```bash
+pip install websockets aiohttp pyyaml
+```
+
+3. Run setup script (Administrator):
+```bash
+scripts\setup_and_start.bat
+```
+
+### Starting the Servers
+
+1. Start HTTP Server:
+```bash
+python miniworld_http_server.py
+```
+
+2. Start WebSocket RPC Server:
+```bash
+python miniworld_rpc_server.py
+```
+
+3. Open MiniWorld and login with any credentials
+
+## Project Structure
 
 ```
-MnMCP-Introducing-Website/
-├── index.html          # 主页面（单页应用）
-├── README.md           # 本文件
-└── .gitattributes      # Git 配置
+MnMCP/
+├── mnmcp-v2/              # Main Python implementation v2
+│   ├── main.py
+│   ├── src/
+│   │   ├── miniworld/     # MiniWorld protocol handlers
+│   │   ├── crypto/        # XXTEA encryption
+│   │   └── config.py
+│   └── tests/
+├── src/
+│   ├── python/            # Python interceptors and servers
+│   ├── rust/              # Rust core library
+│   │   └── mnmcp-core/
+│   ├── go/                # Go server implementation
+│   │   └── mnmcp-server/
+│   └── typescript/        # Web frontend
+│       └── mnmcp-web/
+├── scripts/               # Setup and utility scripts
+├── config/                # Configuration files
+│   └── clash_meta_*.yaml
+└── docs/                  # Documentation
 ```
 
-## 技术栈
+## Components
 
-- **HTML5** - 语义化结构
-- **CSS3** - Flexbox, Grid, CSS Variables, 动画
-- **Vanilla JavaScript** - 无依赖，原生实现
-- **Google Fonts** - Inter 字体
-- **Font Awesome** - 图标库
+### Python Implementation (mnmcp-v2)
 
-## 页面区块
+The main Python implementation providing:
+- MiniWorld protocol parsing
+- WebSocket message handling
+- Room management
+- Login simulation
 
-1. **导航栏** - 固定顶部，毛玻璃效果
-2. **Hero 区域** - 项目介绍、统计数据、CTA 按钮
-3. **功能特性** - 6大核心功能卡片
-4. **技术架构** - 系统架构流程图
-5. **项目状态** - 开发进度展示
-6. **技术栈** - 使用的技术列表
-7. **下载区域** - 下载链接和版本信息
-8. **社区** - 加入社区的方式
-9. **页脚** - 链接和版权信息
+### Rust Core (src/rust/mnmcp-core)
 
-## 本地预览
+High-performance Rust library for:
+- Protocol conversion
+- Network handling
+- Cryptographic operations
+
+### Go Server (src/go/mnmcp-server)
+
+Lightweight Go server implementation for production deployments.
+
+### TypeScript Web (src/typescript/mnmcp-web)
+
+Web-based management interface and monitoring dashboard.
+
+## Documentation
+
+- [Quick Start Guide](docs/QUICKSTART.md)
+- [Architecture Overview](docs/architecture/)
+- [Protocol Specification](docs/protocol/)
+
+## Configuration
+
+Edit `config/clash_meta_mnmcp_v3.yaml` to customize:
+- Server endpoints
+- Room mappings
+- Proxy settings
+
+## Development
+
+### Running Tests
 
 ```bash
-# 方法1: 直接在浏览器中打开
-open index.html
-
-# 方法2: 使用 Python 简单服务器
-cd MnMCP-Introducing-Website
-python -m http.server 8000
-# 访问 http://localhost:8000
-
-# 方法3: 使用 Node.js live-server
-npx live-server
+python -m pytest mnmcp-v2/tests/
 ```
 
-## 更新日志
+### Building Rust Components
 
-### v1.0.0 (2026-02-28)
-- ✨ 初始版本发布
-- 🎨 现代化 UI 设计
-- 📱 响应式布局
-- ✨ 粒子动画和滚动动画
-- 🔗 GitHub 集成
+```bash
+cd src/rust/mnmcp-core
+cargo build --release
+```
 
-### v1.4.0
-- 文档编辑器
+## License
 
-## 贡献
+GPL-3.0 License - See [LICENSE](LICENSE) file for details.
 
-欢迎提交 Issue 和 Pull Request 来改进网站。
+## Contributing
 
-## 许可证
+Contributions are welcome! Please feel free to submit issues and pull requests.
 
-与主项目相同 - MIT License
+## Acknowledgments
+
+- MiniWorld game community
+- Minecraft protocol documentation
+- Contributors and testers
 
 ---
 
-Made with ❤️ by ZCNotFound
+**Made with ❤️ by the MnMCP Team**

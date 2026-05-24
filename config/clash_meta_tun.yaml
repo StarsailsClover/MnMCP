@@ -1,0 +1,56 @@
+# Clash Meta Tun Mode Configuration
+# Routes all traffic through virtual interface
+
+# This config uses TUN mode to intercept ALL traffic
+# including traffic that bypasses system proxy
+
+# TUN interface configuration
+tun:
+  enable: true
+  stack: system
+  dns-hijack:
+    - 8.8.8.8:53
+    - 8.8.4.4:53
+  auto-route: true
+  auto-detect-interface: true
+
+# DNS configuration
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  fallback:
+    - 8.8.8.8
+    - 1.1.1.1
+
+# Proxy servers
+proxies:
+  - name: "MnMCP-Local"
+    type: http
+    server: 127.0.0.1
+    port: 8080
+
+# Proxy groups
+proxy-groups:
+  - name: "MiniWorld"
+    type: select
+    proxies:
+      - MnMCP-Local
+      - DIRECT
+
+# Rules
+rules:
+  # MiniWorld servers -> Local
+  - DOMAIN-SUFFIX,mini1.cn,MiniWorld
+  - DOMAIN-SUFFIX,minitech.cn,MiniWorld
+  - IP-CIDR,42.240.175.30/32,MiniWorld
+  - IP-CIDR,125.88.252.175/32,MiniWorld
+  - IP-CIDR,1.13.213.0/24,MiniWorld
+  - IP-CIDR,129.211.227.0/24,MiniWorld
+  
+  # Default
+  - MATCH,DIRECT
