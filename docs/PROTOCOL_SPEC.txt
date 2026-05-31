@@ -1,0 +1,677 @@
+================================================================================
+  迷你世界 (MiniWorld) 网络协议完整规格说明
+  从 liblibGameApp.so (ARM64) 纯静态逆向提取
+================================================================================
+
+目标二进制: liblibGameApp.so (~178MB, ARM64 Android SO)
+提取方式:   IDA 9.3 静态分析 (无动态调试)
+提取日期:   2026-05-23
+适用场景:   迷你世界 ↔ Minecraft Java Edition 协议中继服务器
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. 网络传输层概述
+
+  传输协议: RakNet (UDP)
+  序列化:   Google Protocol Buffers 2 (proto2 syntax, 完整版非 lite)
+  方向约定:
+    _CH = Client → Host  (客户端发给房主/服务器)
+    _HC = Host → Client  (房主/服务器发给客户端)
+    _MSG = 双向通用
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2. RakNet 游戏包头结构 (13 字节)
+
+  偏移    大小    字段             说明
+  ─────────────────────────────────────────────────────
+  0x00    1       type             RakNet 消息类型
+  0x01    4       guid1            玩家 GUID 部分 1
+  0x05    4       guid2            玩家 GUID 部分 2
+  0x09    2       cmd_id (LE)      协议消息 ID (ePBMsgCode 枚举值)
+  0x0B    2       proto_sz (LE)    protobuf 载荷长度
+  0x0D    ...     payload          protobuf 序列化数据
+
+  解包伪代码:
+    type     = buf[0]
+    guid1    = uint32_le(buf[1:5])
+    guid2    = uint32_le(buf[5:9])
+    cmd_id   = uint16_le(buf[9:11])
+    proto_sz = uint16_le(buf[11:13])
+    payload  = buf[13 : 13 + proto_sz]
+
+  注意: cmd_id 的合法范围是 0-10239 (0x27FE)，实际使用约 660 个值。
+  特殊: cmd_id = 7000 时，payload 是 PB_Custom_Msg，内部用字符串名
+        分发到 59 个子协议 (见下文第 6 节)。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3. Proto 文件结构
+
+  共 9 个 .proto 文件，proto2 语法:
+
+  文件                    Package            消息数  字段数  用途
+  ─────────────────────────────────────────────────────────────────
+  proto_common.proto      game.common         182     979   公共类型 + ePBMsgCode 枚举
+  proto_ch.proto          game.ch             223     768   客户端→主机消息
+  proto_hc.proto          game.hc             350    1359   主机→客户端消息
+  proto_ch_ver2.proto     game.ch              10      36   CH v2 扩展
+  proto_hc_ver1.proto     game.hc_ver1        242     844   HC v1 旧版
+  proto_hc_ver2.proto     game.hc              26     114   HC v2 扩展
+  proto_common_ver1.proto game.common_ver1     86     418   公共类型 v1 旧版
+  proto_gs2ds.proto       miniw                40     189   GameServer↔DataServer
+  proto_room.proto        game.room             6      38   房间管理
+  ─────────────────────────────────────────────────────────────────
+  合计                                       1165    4745
+
+  依赖关系:
+    proto_ch.proto       → import proto_common.proto
+    proto_hc.proto       → import proto_common.proto
+    proto_hc_ver1.proto  → import proto_common_ver1.proto
+    其余文件无外部依赖
+
+  版本说明:
+    proto_common.proto / proto_ch.proto / proto_hc.proto 是当前版本
+    *_ver1.proto 是旧版兼容 (HC 侧有独立的旧版 message 定义)
+    *_ver2.proto 是新增扩展
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4. 完整 cmd_id → 消息名映射 (ePBMsgCode 枚举)
+
+  来源: proto_common.proto 中的 enum ePBMsgCode
+  共约 660 条。下面按 cmd_id 范围分组列出。
+
+  ── 基础 (10-106) ──
+  10    PB_REQ_ERROR_HC                       错误回包
+  11    PB_HEARTBEAT_CH                       心跳请求
+  12    PB_HEARTBEAT_HC                       心跳回包
+  101   PB_SYNC_CHUNK_DATA_CH                 请求区块数据
+  102   PB_SYNC_CHUNK_DATA_HC                 下发区块数据
+  103   PB_BLOCK_DATA_UPDATE_CH               方块更新请求
+  104   PB_BLOCK_DATA_UPDATE_HC               方块更新下发
+  105   PB_SYNC_SECTION_LIGHT_DATA_HC         光照数据同步
+  106   PB_OVERRIDE_LIGHT_DATA_HC             覆写光照数据
+
+  ── 进出世界/AOI (1001-1012) ──
+  1001  PB_ROLE_ENTER_WORLD_CH                进入世界请求
+  1002  PB_ROLE_ENTER_WORLD_HC                进入世界回包
+  1003  PB_ROLE_LEAVE_WORLD_CH                离开世界请求
+  1004  PB_ROLE_LEAVE_WORLD_HC                离开世界回包
+  1006  PB_ACTOR_ENTER_AOI_HC                 实体进入视野
+  1008  PB_ACTOR_LEAVE_AOI_HC                 实体离开视野
+  1010  PB_GAME_LEADER_SWITCH_HC              房主切换
+  1011  PB_GENERAL_ENTER_AOI_HC               通用实体进入视野
+  1012  PB_PVP_ACTIVITY_CONFIG_CH             PvP 活动配置
+
+  ── 移动/传送 (2001-2019) ──
+  2001  PB_ROLE_MOVE_CH                       角色移动
+  2002  PB_TRAIN_MOVE_CH                      矿车移动
+  2004  PB_ACTOR_MOVE_HC                      实体移动下发
+  2005  PB_TRAIN_MOVE_HC                      矿车移动下发
+  2006  PB_ACTOR_MOVEV2_HC                    实体移动 V2
+  2007  PB_ACTOR_TELEPORT_CH                  传送请求
+  2008  PB_ACTOR_TELEPORT_HC                  传送下发
+  2009  PB_ACTOR_MOTION_HC                    实体运动状态
+  2010  PB_MECHA_MOTION_HC                    机甲运动状态
+  2011  PB_GUN_INFO_CH                        枪械信息
+  2012  PB_SYNC_SETINFO_CH                    设置信息同步
+  2013  PB_SYNC_GRIDUSERDATA_CH               格子用户数据请求
+  2014  PB_SYNC_GRIDUSERDATA_HC               格子用户数据下发
+  2015  PB_SYNC_TRIGGERBLOCK_HC               触发方块同步
+  2016  PB_FULLROT_ACTOR_MOVE_HC              全旋转移动
+  2017  PB_ACTOR_MOTIONV2_HC                  实体运动 V2
+  2018  PB_ACTOR_MOVEV3_HC                    实体移动 V3
+  2019  PB_ACTOR_MODELCHG_HC                  实体模型变更
+
+  ── 交互/方块/背包 (2997-3066) ──
+  2997  PB_BLOCK_INTERACT_HC                  方块交互回包
+  2998  PB_BLOCK_PUNCH_HC                     方块敲击回包
+  2999  PB_ITEM_USE_HC                        物品使用回包
+  3000  PB_ACTOR_INTERACT_HC                  实体交互回包
+  3001  PB_BLOCK_INTERACT_END_CH              方块交互结束
+  3002  PB_BLOCK_INTERACT_CH                  方块交互请求
+  3003  PB_BLOCK_PUNCH_CH                     方块敲击请求
+  3004  PB_ITEM_USE_CH                        物品使用请求
+  3005  PB_ACTOR_INTERACT_CH                  实体交互请求
+  3006  PB_ACTOR_ANIM_CH                      实体动画请求
+  3007  PB_ACTOR_ANIM_HC                      实体动画下发
+  3008  PB_BACKPACK_GRID_UPDATE_HC            背包格更新
+  3009  PB_BACKPACK_GRID_SWAP_CH              背包交换
+  3010  PB_BACKPACK_MOVEITEM_CH               背包移动物品
+  3011  PB_BACKPACK_GRID_DISCARD_CH           丢弃物品
+  3015  PB_BACKPACK_EQUIP_WEAPON_CH           装备武器请求
+  3016  PB_BACKPACK_EQUIP_WEAPON_HC           装备武器下发
+  3017  PB_CLOSE_CONTAINER_CH                 关闭容器
+  3018  PB_CLOSE_CONTAINER_HC                 关闭容器下发
+  3020  PB_OPEN_CONTAINER_HC                  打开容器下发
+  3022  PB_UPDATE_CONTAINER_HC                更新容器内容
+  3023  PB_SET_CONTAINERTEXT_CH               设置容器文本
+  3026  PB_ACTOR_EQUIP_ITEM_HC                实体装备变更
+  3029  PB_BACKPACK_STORE_CH                  存入容器
+  3031  PB_BACKPACK_LOOT_CH                   拾取物品
+  3033  PB_BACKPACK_SORT_CH                   背包排序
+  3034  PB_BACKPACK_SETITEM_CH                背包设物品
+  3035  PB_STORAGEBOX_SORT_CH                 储物箱排序
+  3036  PB_BACKPACK_SHORTCUT_OP_CH            快捷栏操作
+  3037  PB_CRAFT_ITEM_CH                      合成物品
+  3039  PB_ENCHANT_ITEM_CH                    附魔请求
+  3041  PB_ENCHANT_ITEM_RANDOM_CH             随机附魔
+  3042  PB_ENCHANT_ITEM_SUCCESS_HC            附魔成功
+  3043  PB_REPAIR_ITEM_CH                     修复请求
+  3044  PB_REPAIR_ITEM_SUCCESS_HC             修复成功
+  3045  PB_GUN_DORELOAD_CH                    换弹请求
+  3046  PB_GUN_DORELOAD_HC                    换弹下发
+  3047  PB_GUN_RECOVERY_CH                    枪械回收
+  3050  PB_ACCOUNT_HORSE_CH                   坐骑请求
+  3051  PB_ACCOUNT_HORSE_HC                   坐骑下发
+  3052  PB_ACTOT_SET_CUSTOM_CH                设置自定义外观
+  3053  PB_ACTOT_SET_CUSTOM_HC                设置自定义外观回包
+  3054  PB_ACTOR_PLAY_ANIM_CH                 播放动画请求
+  3055  PB_ACTOR_PLAY_ANIM_HC                 播放动画下发
+  3056  PB_ACTOR_ATTACK_CH                    攻击请求
+  3057  PB_ACTOR_DEFANCESTATE_CH              防御状态
+  3058  PB_RCLICKUP_INTERACT_CH               右键交互
+  3060  PB_MOUSE_EVENT_CH                     鼠标事件
+  3061  PB_PLAYER_GUNACTION_CH                枪械动作
+  3062  PB_PLAYER_GUNACTION_STATE_HC          枪械动作状态
+  3063  PB_LIVING_INTERACT_NEW_CH             生物交互(新)
+  3064  PB_LIVING_INTERACT_NEW_NEWTAME_HC     驯服结果
+  3065  PB_LIVING_REPRODUCTION_HC             生物繁殖
+  3066  PB_LIVING_INTERACT_NEW_NEWGROW_HC     生物生长
+
+  ── 玩家属性/状态 (4000-4056) ──
+  4000  PB_ACTOR_ATTR_CHANGE_HC               实体属性变更
+  4001  PB_ACTOR_BUFF_CHANGE_HC               实体 Buff 变更
+  4002  PB_ACTOR_REVIVE_CH                    复活请求
+  4003  PB_ACTOR_REVIVE_HC                    复活下发
+  4004  PB_PLAYER_ATTR_CHANGE_HC              玩家属性变更
+  4005  PB_MOB_BODY_CHANGE_HC                 生物外观变更
+  4006  PB_ROOM_JRUISDICTION_CH               房间管辖请求
+  4007  PB_ROOM_JRUISDICTION_HC               房间管辖下发
+  4010  PB_CHAT_CH                            聊天请求
+  4011  PB_CHAT_HC                            聊天下发
+  4012  PB_WGLOBAL_UPDATE_HC                  全局变量更新
+  4013  PB_PLAYERS_UPDATEINFO_HC              玩家信息更新
+  4014  PB_GAME_TIPS_HC                       游戏提示
+  4015  PB_PLAYEFFECT_HC                      播放特效
+  4016  PB_PLAYER_MOUNTACTOR_CH               骑乘请求
+  4017  PB_PLAYER_MOUNTACTOR_HC               骑乘下发
+  4018  PB_PLAYER_MOVEINPUT_CH                移动输入
+  4019  PB_PLAYER_REVIVEPOINT_CH              复活点请求
+  4020  PB_PLAYER_SLEEP_HC                    睡觉下发
+  4021  PB_PLAYER_SLEEP_CH                    睡觉请求
+  4022  PB_OPENWINDOW_HC                      打开窗口
+  4023  PB_NPCTRADE_CH                        NPC 交易
+  4027  PB_PLAYER_REVIVEPOINT_HC              复活点下发
+  4029  PB_SKILLCD_HC                         技能 CD
+  4031  PB_ACTOR_REVERSE_HC                   实体翻转
+  4032  PB_ACTOR_BIND_HC                      实体绑定
+  4035  PB_PLAYWEAPONEFFECT_CH                武器特效请求
+  4037  PB_SET_SPECTATORMODE_CH               观战模式请求
+  4039  PB_SET_SPECTATORTYPE_CH               观战类型请求
+  4041  PB_SET_SPECTATOR_PLAYER_CH            观战目标请求
+  4042  PB_OTHER_PLAYER_ATTR_CHANGE_HC        其他玩家属性变更
+  4044  PB_TEAM_SCORE_HC                      队伍得分
+  4046  PB_SET_PLAYER_GAME_INFO_HC            玩家游戏信息
+  4047  PB_SYNC_MOVE_CH                       移动同步 V1 请求
+  4048  PB_SYNC_MOVE_HC                       移动同步 V1 下发
+  4054  PB_PLAYEFFECT_HC_V3                   播放特效 V3
+  4055  PB_SYNC_MOVEV4_CH                     移动同步 V4 请求
+  4056  PB_SYNC_MOVEV4_HC                     移动同步 V4 下发
+
+  ── 道具/商城/蓝图 (5001-5210) ──
+  5001  PB_ACTOR_GET_ACCOUNT_ITEM             获取账号道具
+  5002  PB_SPECIALITEM_USE_CH                 特殊道具使用
+  5003  PB_SPECIALITEM_USE_HC                 特殊道具使用回包
+  5004  PB_LEAVE_ROOM_INFO_HC                 离房信息
+  5005  PB_INVITEJOINROOM_HC                  邀请入房
+  5013  PB_ITEM_SKILL_USE_CH                  物品技能使用
+  5015  PB_BALL_OPERATE_CH                    球操作请求
+  5019  PB_ROCKET_TELEPORT_CH                 火箭传送
+  5021  PB_SET_HOOK_CH                        设置钩爪
+  5022  PB_WORLD_TIMES_HC                     世界时间
+  5028  PB_OPENDIALOGUE_HC                    打开对话
+  5031  PB_ANSWERTASK_CH                      任务回答
+  5032  PB_UPDATETASK_HC                      任务更新
+  5033  PB_SYNCTASK_ENTERWORLD_HC             进入世界任务同步
+  5041  PB_PLAYER_ACT_CH                      玩家动作
+  5043  PB_CREATE_BLUEPRINT_HC                创建蓝图
+  5045  PB_BLUEPRINT_PREBLOCK_CH              蓝图预览
+  5047  PB_GRAVITY_OPERATE_CH                 重力操作
+  5050  PB_CUSTOM_MODEL_HC                    自定义模型下发
+  5062  PB_SYNC_LOVEAMBASSADOR_ICONID_CH      爱心大使图标同步
+  5063  PB_TRANSFER_DATA_HC                   传送数据下发
+  5064  PB_ACTOR_TRANSFER_CH                  实体传送请求
+  5067  PB_NPCSHOP_GETSHOPINFO_CH             NPC商店信息请求
+  5071  PB_VEHICLE_MOVE_HC                    载具移动下发
+  5077  PB_VEHICLE_PREBLOCK_CH                载具预览方块
+  5080  PB_VEHICLE_STARTBLOCK_CH              载具开始放置
+  5084  PB_VEHICLE_ATTRIB_CHANGE_CH           载具属性变更
+  5088  PB_PLAYER_VEHICLE_MOVEINPUT_CH        载具移动输入
+  5091  PB_PLAYER_CLICK_CH                    玩家点击
+  5098  PB_PLAYER_SELECTSHORTCUT_CH           选择快捷栏
+  5101  PB_BASKETBALL_OPERATE_CH              篮球小游戏
+  5104  PB_PLAYER_TOUCH_EVT_SYNC_HC           触摸事件同步
+  5200  PB_BUY_AD_SHOP_GOOD_CH               广告商店购买
+  5202  PB_SYNC_PLAYER_POS_HC                 同步玩家位置
+  5206  PB_UPLOAD_CHECK_INFO_CH               上传检查信息
+  5210  PB_SYNC_PLAYER_POS_CH                 同步玩家位置请求
+
+  ── 扩展功能 (6000-6508) ──
+  6002  PB_TRIGGER_PLAYER_ATTRI_CH            触发玩家属性
+  6005  PB_PLAYER_NAVIGATE_HC                 导航下发
+  6007  PB_OPENEDIT_FULLYCUSTOMMODEL_HC       打开全自定义模型编辑
+  6008  PB_REQ_DOWNLOADRES_URL_CH             请求资源下载 URL
+  6015  PB_TRIGGER_MUSIC_HC                   触发音乐
+  6019  PB_PLAYER_SPECIAL_SKILL_CH            特殊技能
+  6021  PB_CLOUDSERVER_PERMIT_CH              云服权限请求
+  6028  PB_VEHICLE_ASSEMBLE_LINE_CH           载具装配线
+  6030  PB_VEHICLE_ASSEMBLE_LINE_OPERATE_CH   载具装配操作
+  6034  PB_CLOUDSERVER_CHANGE_TEAM_CH         云服切换队伍
+  6036  PB_YM_CHANGEROLE_HC                   语音变声下发
+  6038  PB_YM_VOICE_CH                        语音数据
+  6042  PB_MAP_EDIT_HANDLE_CH                 地图编辑操作
+  6043  PB_MAP_EDIT_REVOKE_CH                 地图编辑撤销
+  6052  PB_PLAYER_INPUTCONTENT_CH             输入内容
+  6060  PB_PLAYER_CARRYACTOR_CH               搬运实体
+  6064  PB_VILLAGER_MODIFY_NAME_CH            村民改名
+  6074  PB_PLAYER_GOTOPOS_CH                  玩家移动到坐标
+  6085  PB_INTERACT_MOBPACK_HC                生物背包交互
+  6089  PB_ALTAR_LUCKY_DRAW_CH                祭坛抽奖
+  6098  PB_OPEN_HOMENPC_HC                    打开家园 NPC
+  6102  PB_HOME_SUMMONPET_CH                  家园召唤宠物
+  6103  PB_HOMELAND_RANCH_HC                  家园牧场下发
+  6108  PB_CHANGE_ACTOR_MODEL_HC              实体模型更换
+  6111  PB_VOICE_INFORM_CH                    语音通知
+  6113  PB_RUNE_OPERATE_CH                    符文操作
+  6115  PB_FURNACE_TEMPERATURE_CH             熔炉温度
+  6122  PB_STARSTATION_CHANGENAMESTATUS_CH    星站改名状态
+  6128  PB_UPDATE_STARSTATION_CABIN_STATUS_CH 星站舱室状态更新
+  6132  PB_ADD_UNFINISHED_TRANSFER_RECORD_CH  添加未完成传送记录
+  6135  PB_REMOVE_UNFINISHED_TRANSFER_RECORD_CH 移除未完成传送记录
+  6137  PB_STARSTATION_DATA_HC                星站数据下发
+  6138  PB_PLAYER_TRANSFER_BY_STRSTATION_CH   星站传送
+  6143  PB_REQUIRE_STARSTATION_TRANSFER_CH    请求星站传送
+  6145  PB_BLOCK_EXPLOIT_CH                   方块开采
+  6152  PB_UPDATE_STARSTATION_CABIN_STATUSEND_CH 星站舱室更新完成
+  6154  PB_ADD_STARSTATION_TRANSFER_DESC_CH   添加星站传送描述
+  6155  PB_ADDEXP_CH                          增加经验
+  6157  PB_COUSTOMUI_EVENT_CH                 自定义 UI 事件
+  6162  PB_USEHEARTH_CH                       使用炉石
+  6164  PB_ACTOR_STOP_ANIM_CH                 停止动画
+  6184  PB_CHANGE_QQMUSIC_PLAYER_CH           QQ音乐播放器
+  6188  PB_ACTOR_PLAY_SOUND_CH                播放声音
+  6192  PB_PLAYER_SKIN_ACT_CH                 皮肤动作
+  6199  PB_SPRAY_PAINT_INFO_CH                喷漆信息
+  6204  PB_PLAYEFFECT_CH                      播放特效(CH)
+  6217  PB_STARTFISHING_CH                    开始钓鱼
+  6219  PB_ENDFISHING_CH                      结束钓鱼
+  6245  PB_EFFECT_COM_PARTICLE_UPDATE         粒子特效更新
+  6247  PB_BIND_PLAYER_TO_PHYSICS_PLAT_CH     绑定物理平台
+  6248  PB_UNBIND_PLAYER_TO_PHYSICS_PLAT_CH   解绑物理平台
+  6260  PB_CREATE_BLOCK_CH                    创建方块
+  6274  PB_DESTORY_BLOCK_CH                   销毁方块
+  6276  PB_ATTR_SHAPE_SHIFT_SYNC_HC           变身同步
+  6288  PB_PLAYER_SHAKE_CH                    玩家摇晃
+  6290  PB_COOKBOOKINFO_HC                    烹饪书信息
+  6291  PB_STOVETAKE_CH                       炉灶取出
+  6298  PB_ACCUMULATOR_HC                     蓄力器
+  6305  PB_STOPWEAPONANIM_CH                  停止武器动画
+  6307  PB_STOPWEAPONMOTION_CH                停止武器运动
+  6312  PB_PLAYER_CAMERACONFIG_HC             相机配置
+  6314  PB_PLAY_SKIN_VOICE_CH                 播放皮肤语音
+  6321  PB_STORAGE_BOX_PUT_IN_ALL_CH          储物箱全部放入
+  6323  PB_DYNAMIC_PROTO_HC                   动态协议下发
+  6324  PB_DYNAMIC_PROTO_CH                   动态协议请求
+  6330  PB_STORAGE_BOX_TAKE_OUT_ALL_CH        储物箱全部取出
+  6331  PB_SYNC_DYEABLE_ITEM_CH               染色物品同步
+  6332  PB_CUSTOM_PBC_CH                      自定义 PBC 请求
+  6333  PB_CUSTOM_PBC_HC                      自定义 PBC 下发
+  6500  PB_PHYSICS_INPUT_FRAME                物理输入帧
+  6501  PB_PHYSICS_ASYNC_TIMESTAMP            物理异步时间戳
+  6502  PB_PHYSICS_SETUP_TIMESTAMP            物理设置时间戳
+  6504  PB_PHYSICS_REPLICATED_INPUT_CH        物理复制输入
+  6505  PB_PHYSICS_REPLICATED_INPUT_HC        物理复制输入下发
+  6506  PB_PHYSICS_REPLICATED_STATE_CH        物理复制状态
+  6508  PB_PHYSICS_COMMON_REPLICATED          物理通用复制
+
+  ── 子消息/扩展 (7000-10002) ──
+  7000  PB_CUSTOM_MSG                         自定义消息容器(字符串分发)
+  7001  PB_BlockData_CH                       方块数据
+  7002  PB_PUSHSNOWBALL_OPERATE_CH            推雪球操作
+  7006  PB_NEW_REPAIR_ITEM_CH                 新修复物品
+  7009  PB_ACTORSHOOT_CH                      射击请求
+  7010  PB_ACTOR_FIREWORK_CH                  烟花请求
+  7012  PB_ACTOR_SPEED_CHANGE_HC              实体速度变更
+  7013  PB_TASK_INITDATA_HC                   任务初始数据
+  7014  PB_BYMOUNT_HC                         骑乘下发
+  7020  PB_BYMOUNT_CH                         骑乘请求
+  7027  PB_PLAYWEAPONMOTION_CH                播放武器运动
+  7029  PB_PLAYWEAPONANIM_CH                  播放武器动画
+  7033  PB_SETINTERACTACTORMECHA_HC           设置交互机甲
+  7035  PB_CHECKNEWUNLOCKITEM_CH              检查新解锁物品
+  7036  PB_PLAY_CAMERA_SHAKE_HC               相机震动
+  7038  PB_MECHAKINETICUINT_HC                机甲动力学单元
+  7041  PB_CONTAINER_UI_DATA_CH               容器 UI 数据
+  7044  PB_MECHA_STRUCTURE_SYNC_HC            机甲结构同步
+  7045  PB_MECHA_STRUCTURE_OPERATE_CH         机甲结构操作
+  7048  PB_PICK_TRANSFER_GOOD_ITEM_CH         拾取传送物品
+  7051  PB_IRONDOMEESSENCE_DISEQUIP_CH        铁穹精华卸装
+  7056  PB_BLOCKTEXTURECOLORS_HC              方块纹理颜色
+  7058  PB_SANDBOX_LUA_LOG_DATA_CH            沙盒Lua日志数据
+  7102  PB_AI_ASR_AUDIO_CH                    AI 语音识别
+  7104  PB_WBP_MSG_HC                         WBP 消息下发
+  7105  PB_WBP_MSG_CH                         WBP 消息请求
+  7106  PB_RAKEPLANTITEMID_CH                 耙植物 ID
+  7114  PB_PLAYER_USE_ITEM_CH                 玩家使用物品
+  7115  PB_PLAYER_PLAY_HAND_ANIM_HC           手部动画
+  7116  PB_PLAYER_PLAY_DIG_BLOCK_EFFECT_HC    挖掘方块特效
+  10002 PB_WORLD_SYNC_SAVE_HC                 世界同步存档
+
+  完整 ePBMsgCode 请参考 proto_common.proto 中的 enum 定义。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+5. 核心 Message Schema 摘要
+
+  ── 心跳 ──
+  PB_HeartBeatCH {
+    optional uint64 BeatCode = 1;
+    optional uint64 server_time = 2;
+    optional uint64 client_time = 3;
+    optional bytes  aceinfo = 4;      // 反作弊信息
+    optional int32  Rtt = 5;
+  }
+  PB_HeartBeatHC { optional int32 BeatCode = 1; }
+
+  ── 进入世界 ──
+  PB_RoleEnterWorldCH {
+    optional uint32      Uin = 1;             // 玩家 UID
+    optional int32       GeniusLv = 2;        // 天才等级
+    optional int32       UICtrlMode = 3;      // 操控模式
+    optional PB_RoleInfo RoleInfo = 4;        // 角色信息
+    optional PB_PlayerVipInfo VipInfo = 5;    // VIP 信息
+    optional int32       lang = 6;            // 语言
+    optional int32       apiid = 7;           // API 平台 ID
+    optional int32       reserved = 8;
+    optional string      Auth = 9;            // 鉴权令牌
+    optional string      country = 10;
+    optional int32       cltversion = 11;     // 客户端版本号
+    optional string      session_id = 12;
+    optional string      game_session_id = 13;
+    optional int32       specify_team = 14;   // 指定队伍
+  }
+
+  ── 移动同步 ──
+  PB_MoveSyncCH {
+    required uint32    id = 1;            // 实体 ID
+    optional PB_MoveTick move_opera = 2;  // 移动操作
+    optional PB_Vector3  pos = 3;         // 位置
+    optional PB_Vector3  motion = 4;      // 速度
+    repeated PB_FlagOn   flag_change = 5; // 标志变更
+    optional uint64      tick = 6;        // 游戏 tick
+    optional PB_Vector3  RayOrigin = 7;   // 射线起点
+    optional PB_Vector3  RayDir = 8;      // 射线方向
+  }
+
+  PB_ActorMoveV2HC {
+    optional uint64 ObjID = 1;            // 实体 ID
+    repeated sint32 Position = 2;         // 位置 (packed x,y,z)
+    optional uint32 Yaw_Pitch = 3;        // 朝向 (打包)
+    optional int32  ChangeFlags = 4;      // 变更标志位
+  }
+
+  ── 聊天 ──
+  PB_ChatCH {
+    optional int32  ChatType = 1;     // 聊天类型
+    optional uint32 TargetUin = 2;    // 目标 UID
+    optional string Content = 3;      // 聊天内容
+    optional int32  Language = 4;     // 语言
+    optional string Extend = 5;       // 扩展数据
+    optional string Translate = 6;    // 翻译内容
+    optional string wwtk1 = 7;       // 语音相关
+    optional string wwtk2 = 8;
+    optional string wwParam = 9;
+  }
+
+  ── 方块交互 ──
+  PB_BlockInteractCH {
+    optional int32     face = 1;      // 面方向
+    optional int32     colptx = 2;    // 碰撞点 X
+    optional int32     colpty = 3;    // 碰撞点 Y
+    optional int32     colptz = 4;    // 碰撞点 Z
+    optional PB_Vector3 blockpos = 5; // 方块坐标
+  }
+
+  ── 公共类型 ──
+  PB_Vector3 {
+    optional sint32 X = 1;
+    optional sint32 Y = 2;
+    optional sint32 Z = 3;
+  }
+  PB_Vector3f {
+    optional float X = 1;
+    optional float Y = 2;
+    optional float Z = 3;
+  }
+  PB_MoveMotion {
+    optional PB_Vector3 Pos = 1;          // 位置
+    optional PB_Vector3 Motion = 2;       // 速度向量
+    optional float      Yaw = 3;         // 水平朝向
+    optional float      Pitch = 4;       // 垂直朝向
+    optional float      BodyYaw = 5;     // 身体朝向
+    optional PB_Vector3 HeadPos = 6;     // 头部位置
+    optional float      HeadYaw = 7;
+    optional float      HeadPitch = 8;
+    optional float      AniSpeed = 9;    // 动画速度
+    optional float      AniSmooth = 10;  // 动画平滑度
+  }
+  PB_RoleInfo {
+    optional int32  Model = 1;        // 模型 ID
+    optional string NickName = 2;     // 昵称
+    optional int32  SkinID = 3;       // 皮肤 ID
+    optional string CustomJson = 4;   // 自定义 JSON
+    optional int32  FrameID = 5;      // 头像框
+    optional string BPtitle = 6;      // 战令称号
+    optional string ModAvatar = 7;    // 模组头像
+  }
+
+  完整 schema 请参考各 .proto 文件。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+6. cmd_id = 7000 字符串子协议
+
+  当 cmd_id = 7000 时，payload 是 PB_Custom_Msg:
+    message PB_Custom_Msg {
+      optional string MsgName = 1;    // 子协议名 (下表)
+      optional bytes  MsgBuf = 2;     // 子协议的 protobuf 数据
+    }
+
+  MsgName 分发到 59 个子协议:
+
+  字符串名                                方向      功能
+  ────────────────────────────────────────────────────────────
+  PB_ACTOR_CREATE_THORNBALL               HC       创建荆棘球
+  PB_ACTOR_DISSOLVE_COMPONENT_OPEN_HC     HC       溶解组件
+  PB_ACTOR_REBOUNDS_ATTACK_ROUND          HC       弹射攻击(圆)
+  PB_ACTOR_REBOUNDS_ATTACK_UP             HC       弹射攻击(上)
+  PB_ACTOR_SANDWORM_CAN_MOVE             HC       沙虫可移动
+  PB_ACTOR_SANDWORM_NIBBLE_PLAYER        HC       沙虫啃咬
+  PB_ACTOR_SANDWORM_SHOW                 HC       沙虫出现
+  PB_ACTOR_SCASLE                        HC       实体缩放
+  PB_ACTOR_SNOWMAN_PART_SHOW             HC       雪人部件
+  PB_ACTOR_VILLAGER_INFO                 HC       村民信息
+  PB_ATTR_SHAPE_SHIFT_RIGHT_CLICK_CH     CH       变身右键
+  PB_BaseState_HC                        HC       基础状态
+  PB_CH_NOTICE_ATTACKED_ROUND            CH       受击通知(圆)
+  PB_CH_NOTICE_ATTACKED_UP               CH       受击通知(上)
+  PB_CH_NOTICE_REMOVE_SAWTOOTH_THORNBA   CH       移除锯齿荆棘
+  PB_COCONUT_HIT                         HC       椰子命中
+  PB_COCONUT_SKIP_NIGHT                  HC       椰子跳过夜晚
+  PB_CRAB_CLICKCOUNT_RESET               CH       螃蟹点击重置
+  PB_CREATE_BLOCK_CH                     CH       创建方块
+  PB_DESTORY_BLOCK_CH                    CH       销毁方块
+  PB_GROUP_WEATHER_HC_PB                 HC       群组天气
+  PB_GUNLOGIC_USE_WaterCanoonSkill       CH       水枪技能
+  PB_HIPPOCAMPUS_CHANGECOLOR             HC       海马变色
+  PB_HIPPOCAMPUS_REFRESHMODEL            HC       海马刷新模型
+  PB_MOB_PART_SHOW                       HC       生物部件显示
+  PB_PEDALBLOCK_CH                       CH       踏板方块
+  PB_PLAYER_SHAKE_CH                     CH       玩家摇晃
+  PB_PLAY_SKIN_VOICE_CH                  CH       皮肤语音
+  PB_POLAROID_FRAMECHANGE_CH             CH       拍立得换框
+  PB_POLAROID_FRAMECHANGE_HC             HC       拍立得换框下发
+  PB_POLAROID_PHOTOITEM_CH               CH       拍立得照片
+  PB_POLAROID_PHOTOITEM_HC               HC       拍立得照片下发
+  PB_REMOVE_SAWTOOTH_THORNB              HC       移除锯齿荆棘
+  PB_SCORPION_HIDE_STATUS_CH             CH       蝎子隐藏状态
+  PB_SETHPVISIBLE_HC                     HC       设置血条可见
+  PB_SETLOCOTYPE_HC                      HC       设置运动类型
+  PB_SETMOVEMENT_MODE_HC                 HC       设置移动模式
+  PB_SKILLMOVE_HC                        HC       技能移动
+  PB_SKILLPLAYANIM_HC                    HC       技能播放动画
+  PB_SKILLPLAYBODYEFFECT_HC              HC       技能身体特效
+  PB_SKILLPLAYTOOLANIM_HC                HC       技能工具动画
+  PB_SKILLSTOPANIM_HC                    HC       技能停止动画
+  PB_SKILLSTOPBODYEFFECT_HC              HC       技能停止特效
+  PB_SKILLSTOPTOOLANIM_HC                HC       技能停止工具动画
+  PB_SKILL_INTERRUPT                     HC       技能打断
+  PB_SKILL_SYNC_PLAYER_INFO              CH       技能同步玩家信息
+  PB_SKILL_USE_CH                        CH       技能使用
+  PB_STOPWEAPONANIM_CH                   CH       停止武器动画
+  PB_STOPWEAPONANIM_HC                   HC       停止武器动画下发
+  PB_STOPWEAPONMOTION_CH                 CH       停止武器运动
+  PB_STOPWEAPONMOTION_HC                 HC       停止武器运动下发
+  PB_STORAGE_BOX_PUT_IN_ALL_CH           CH       储物箱全部放入
+  PB_STORAGE_BOX_TAKE_OUT_ALL            CH       储物箱全部取出
+  PB_STOVETAKE_CH                        CH       炉灶取出
+  PB_SYNC_DYEABLE_ITEM_CH               CH       染色物品同步
+  PB_TASKSYS_PROCESS_CH                  CH       任务系统处理
+  PB_TASK_REWARD_CH                      CH       任务奖励
+  PB_TASK_UPDATE_CH                      CH       任务更新
+  PB_TEMPERATURE_MOB_POSTEMP_HC          HC       温度生物体温
+
+  注意: 部分子协议同时有对应的数值 cmd_id 版本 (如 PB_CREATE_BLOCK_CH
+  同时存在于 cmd=6260 和 cmd=7000 字符串路由)。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+7. 关键枚举
+
+  enum ePBErrorCode {
+    PB_ERROR_UNKNOWN = 1;
+    PB_ERROR_WRONG_MSG_CODE = 11;
+    PB_ERROR_WRONG_REQUESTER = 12;
+    PB_ERROR_WRONG_ARGS = 13;
+    PB_ERROR_PLAYER_NOT_LOGIN = 14;
+    PB_ERROR_ILLEGAL_ARGS = 15;
+    PB_ERROR_OP_NOT_FOUND = 16;
+    PB_ERROR_BACKPACK_FULL = 21;
+    PB_ERROR_STORAGE_FULL = 22;
+    PB_ERROR_ENCHANT_NOT_ENOUGH = 25;
+    PB_ERROR_ENCHANT_FAILED = 26;
+    PB_ERROR_ENCHANT_NOT_CHANGED = 27;
+    PB_ERROR_CRAFT_NOT_ENOUGH = 28;
+    PB_ERROR_STAR_NOT_ENOUGH = 29;
+    PB_ERROR_REPAIR_NOT_ENOUGH = 30;
+    PB_ERROR_REPAIR_NOT_DAMAGED = 31;
+    PB_ERROR_ROLE_ENTER_BANNED = 10011;
+    PB_ERROR_ROLE_ENTER_TOO_OFTEN = 10012;
+    PB_ERROR_ROLE_ENTER_SERVER_FULL = 10013;
+    PB_ERROR_ROLE_ENTER_SERVER_CLOSING = 10014;
+    PB_ERROR_ROLE_MOVE_ILLEGAL_POS = 20031;
+    PB_MAX_ERROR_CODE = 102410;
+  }
+
+  enum ePBActorTypes {
+    PB_ACTORTYPEGENERAL = 0;    // 通用
+    PB_ACTORTYPEROLE = 1;       // 角色
+    PB_ACTORTYPEMONSTER = 2;    // 怪物
+  }
+
+  其他枚举: PCMouseKeyType, PCMouseEventType, TouchEventType,
+            CheatCheckType, ChunkSyncInitType, ePBModContainerOp 等
+  详见 proto_common.proto。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+8. 中继服务器对接指南
+
+  8.1 解包迷你世界数据包
+    1. 从 RakNet UDP 层取出应用层 payload
+    2. 解析 13 字节游戏包头 → 得到 cmd_id + proto_sz
+    3. 用 cmd_id 查 ePBMsgCode → 确定 message 类型
+    4. 用对应 .proto 的 message 定义反序列化 payload
+    5. 若 cmd_id = 7000 → 先反序列化为 PB_Custom_Msg →
+       用 MsgName 字段确定子协议 → 再反序列化 MsgBuf
+
+  8.2 代码生成
+    protoc --java_out=./gen  proto_common.proto proto_ch.proto proto_hc.proto
+    protoc --python_out=./gen proto_common.proto proto_ch.proto proto_hc.proto
+    protoc --cpp_out=./gen   proto_common.proto proto_ch.proto proto_hc.proto
+
+    注意: proto_ch.proto 和 proto_hc.proto 依赖 proto_common.proto，
+    编译时需要一起传入或指定 --proto_path。
+
+  8.3 协议翻译要点 (迷你世界 ↔ MC Java Edition)
+
+    迷你世界概念          MC JE 等价物              cmd_id
+    ────────────────────────────────────────────────
+    PB_HeartBeatCH/HC     Keep Alive (0x21/0x23)   11/12
+    PB_RoleEnterWorldCH   Login Start + Join Game   1001
+    PB_SyncChunkDataCH    Chunk Data (0x27)         101
+    PB_BlockInteractCH    Player Block Placement    3002
+    PB_BlockPunchCH       Player Digging            3003
+    PB_ItemUseCH          Use Item                  3004
+    PB_ChatCH/HC          Chat Message              4010/4011
+    PB_MoveSyncCH         Set Player Position       4047
+    PB_ActorMoveV2HC      Entity Position           2006
+    PB_ActorEnterAOIHC    Spawn Entity              1006
+    PB_ActorLeaveAOIHC    Destroy Entity            1008
+    PB_BackpackGridUpdate Inventory (0x13)          3008
+    PB_EquipWeaponCH      Held Item Change          3015
+    PB_PlayerSleepCH      Player Bed                4021
+
+  8.4 坐标系差异
+    迷你世界: sint32 定点数 (PB_Vector3)，需要 ÷ 某个比例还原浮点
+    MC JE:    double 浮点 (绝对坐标) 或 fixed-point short (相对坐标)
+    朝向: 迷你世界用 Yaw/Pitch float 或 packed uint32
+          MC JE 用 angle byte (256 = 360°)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+9. 文件清单
+
+  proto_reconstructed/
+  ├── PROTOCOL_SPEC.txt            ← 本文件
+  ├── proto_common.proto           公共类型 + ePBMsgCode (2278 行)
+  ├── proto_ch.proto               客户端→主机 (1468 行)
+  ├── proto_hc.proto               主机→客户端 (2421 行)
+  ├── proto_ch_ver2.proto          CH v2 扩展 (69 行)
+  ├── proto_hc_ver1.proto          HC v1 旧版 (1582 行)
+  ├── proto_hc_ver2.proto          HC v2 扩展 (195 行)
+  ├── proto_common_ver1.proto      公共 v1 旧版 (1190 行)
+  ├── proto_gs2ds.proto            GameServer↔DataServer (410 行)
+  └── proto_room.proto             房间管理 (114 行)
+
+  上级目录 ida_scripts/:
+  ├── miniworld_protocol_dict.json     cmd_id→PB名+caller映射 (415条)
+  ├── miniworld_protobuf_schemas.json  全量 schema JSON
+  └── protobuf_schema_report.txt       完整 schema 文本报告 (9871 行)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+10. 统计总览
+
+  指标                      数值
+  ──────────────────────────────
+  .proto 文件                  9
+  Message 定义              1165
+  Enum 定义                   29
+  字段定义                  4745
+  ePBMsgCode 条目           ~660
+  cmd=7000 字符串子协议        59
+  .proto 文件总行数          9727
+  ──────────────────────────────

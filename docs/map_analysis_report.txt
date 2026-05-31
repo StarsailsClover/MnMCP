@@ -1,0 +1,105 @@
+# MiniWorld Map Data Full Analysis Report (UPDATED)
+
+## !! 重大修正 !!
+
+### 43299 不是 msgcode，是 session ID 的误解析
+
+本地房间的包格式和云房间不同。之前以为 `0xA923` (43299) 是 msgcode，实际上：
+
+```
+云房间 S2C:  89 | CODE(2B LE) | LEN(2B LE) | DATA                    (5字节头)
+云房间 C2S:  89 | UIN(4B BE)  | PLACEHOLDER(4B+4B) | CODE(2B LE) | LEN(2B LE) | DATA  (17字节头)
+
+本地房间统一格式（双向）:
+  89 | SESSION_ID(4B) | PLACEHOLDER(4B) | CODE(2B LE) | LEN(2B LE) | DATA  (13字节头)
+  其中 SESSION_ID 固定为 0x23A9F417 (本次抓包)
+```
+
+用 13 字节头（跳过 89 + 4B session + 4B placeholder）解析，3185/3272 个包全部正确匹配 protobuf 消息。
+
+### 本地房间包频率统计 (3185个)
+
+| Code | 名称 | 数量 | 类型 |
+|------|------|------|------|
+| 3007 | PB_ACTOR_ANIM_HC | 686 | 动画 |
+| 4015 | PB_PLAYEFFECT_HC | 592 | 特效 |
+| 7057 | PB_LOOKATACTOR_HC | 462 | 注视 |
+| 2018 | PB_ACTOR_MOVEV3_HC | 380 | 移动 |
+| 7110 | PB_SLEEP_MSG_HC | 316 | 休眠 |
+| 6309 | PB_BASESTATE_HC | 251 | 状态 |
+| 102 | PB_SYNC_CHUNK_DATA_HC | 81 | **区块数据** |
+| 1011 | PB_GENERAL_ENTER_AOI_HC | 72 | AOI |
+| 7019 | PB_GROUP_WEATHER_HC | 49 | 天气 |
+| 7000 | PB_CUSTOM_MSG | 28 | 自定义消息 |
+| 4013 | PB_PLAYERS_UPDATEINFO_HC | 18 | 玩家列表 |
+| 12 | PB_HEARTBEAT_HC | 7 | 心跳 |
+
+**地图数据通过标准 PB_SYNC_CHUNK_DATA_HC (code=102) 发送，81个包。**
+
+## 可解析 (完整列表)
+
+### 1. 网络协议 - 完全解析
+- 667 ePBMsgCode 枚举值 (1.56.0)
+- 666 有 protobuf 类映射
+- 本地房间和云房间的包头格式差异已确认
+- 所有游戏消息均可解析
+
+### 2. 压缩算法 - 完全确认
+从 IDA 反编译 `sub_6658FC8` 的 switch-case:
+```
+case 0: zlib (j__uncompress)
+case 1: LZ4 (j__RAINBOW_LZ4_decompress_fast)
+case 2: LZMA (j__LzmaUncompress, 前5B是props)
+case 3: ZSTD (通过对象接口)
+```
+
+### 3. CmdDataDecompress (地图编辑命令)
+- 压缩: LZMA (type=2)
+- 解压后: ASCII文本格式
+- 头16字节: 记录数量(ASCII数字)
+- 每记录102字节: 6个17字符字段(cmdType, X, Y, Z, field5, field6)
+- 可变长额外数据块
+
+### 4. 方块存储格式
+- 每方块 4 字节 (uint32)
+- 低 19 位 (& 0x7FFFF) = block ID
+- 高 4 位 (>> 28) = block data/state
+- 从 `sub_4E2B664` region reader 反编译确认
+
+### 5. 本地存档结构
+- 完整目录树已知
+- .fb = FlatBuffers 元数据
+- .r = 区域文件 (128B section table + 压缩数据)
+- .a = Actor 实体文件
+- m0/m1/m2 = 维度
+
+### 6. CSV 定义
+- blockdef.csv: 2990 方块, 完整字段
+- worlddef.csv, biomedef.csv 等
+
+## 仍未解析
+
+### 1. 本地 .r 文件的压缩算法 [MEDIUM]
+- section table 128B 记录的字段定义
+- 数据区用的是 zlib/LZ4/LZMA/ZSTD 中的哪一种
+- 需要: 用已确认的4种算法逐一测试
+
+### 2. PB_SYNC_CHUNK_DATA_HC 的 protobuf 内部结构 [MEDIUM]
+- 这个消息本身在 proto 里有定义 (ChunkBlob, ChunkSaveDB 等)
+- 但完整的 chunk data blob 的二进制内容格式需要进一步分析
+
+### 3. FlatBuffers schema [LOW]
+- wdesc.fb/wglobal.fb 字段含义
+
+### 4. Actor 文件格式 [LOW]
+
+## 关键结论
+
+**本地房间不使用任何特殊的地图传输协议。**
+所有数据（包括区块）通过标准 protobuf 消息发送，只是包头格式从 5 字节 (S2C) 变成了 13 字节 (带 session ID)。
+
+**MN2MC 服务器需要做的调整:**
+1. 支持 13 字节包头格式 (host_to_room_server=true 时)
+2. 响应 PB_ROLE_CHECK_JOINFROMSRC_CH (1013)
+3. 发送 PB_SYNC_CHUNK_DATA_HC (102) 区块数据
+4. 不需要实现 43299 / PACKDATA 等自定义协议
