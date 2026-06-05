@@ -1,65 +1,62 @@
-# Victoria v3.0-20260605 Phase7 RC Release Notes
+# Victoria v3.1-20260605 Phase8 Stable Release Notes
 
-**版本**: Victoria v3.0-20260605 Phase7 RC  
-**日期**: 2026-06-05  
-**类型**: Release Candidate (RC)  
-**状态**: Pre-Release
-
----
-
-## 版本命名规范
-
-```
-Victoria v3.0-20260605 Phase7 RC
-```
+**Version**: Victoria v3.1-20260605 Phase8 Stable  
+**Date**: 2026-06-05  
+**Status**: Stable
 
 ---
 
-## 功能清单
+## Overview
 
-### Phase 1-3: 基础层
-- 方块映射系统 (844个映射)
-- XXTEA 加密/解密
-- AES-CFB8 加密 (MC)
-- JWT 认证
-- 统一配置系统
+Victoria v3.1 Phase8 Stable is the first stable release of the MnMCP protocol bridge, featuring a complete implementation with CI/CD, clean documentation, and organized project structure.
 
-### Phase 4-5: 客户端层
-- Minecraft 客户端 (TCP/MC协议)
-- MiniWorld 客户端 (UDP/RakNet)
-- 纯 Python 实现
-- 100% 类型注解
-- 统一事件系统
+## What's New
 
-### Phase 6: 桥接核心
-- MCPBridge 核心
-- 双向数据转发
-- 20Hz 位置同步
-- 坐标转换 (Yaw映射)
+### Project Organization
+- Clean file structure
+- Organized documentation
+- Removed redundant files
+- Proper .gitignore
 
-### Phase 7: 测试层
-- 测试基础设施
-- 单元测试 (33+ 用例)
-- pytest 配置
+### CI/CD
+- GitHub Actions workflow
+- Automated testing on Python 3.9-3.12
+- Coverage reporting
+- Linting with flake8 and mypy
 
----
+### Documentation
+- Rewrote README without emoji
+- Added CONTRIBUTING.md
+- Added CHANGELOG.md
+- Clear project structure
 
-## 代码统计
+## Features
 
+### Core Components
+- Block mapping (844 blocks)
+- XXTEA encryption
+- AES-CFB8 encryption
+- Protocol codec (82+ message types)
+- Minecraft client (TCP)
+- MiniWorld client (UDP/RakNet)
+- Bridge core with bidirectional forwarding
+- HTTP proxy and RakNet gateway
+
+### Testing
+- 33+ unit tests
+- pytest configuration
+- Coverage reporting
+
+## Installation
+
+```bash
+git clone https://github.com/StarsailsClover/MnMCP.git
+cd MnMCP/mnmcp-v3-integrated
+pip install -r requirements.txt
+python verify_mn3.py
 ```
-核心代码:     ~4,000 行
-测试代码:       ~400 行
-文档:         ~2,500 行
-───────────────────────
-总计:         ~7,400 行
 
-模块数:       10+ 核心模块
-测试用例:     33+ 单元测试
-```
-
----
-
-## 快速开始
+## Quick Start
 
 ```python
 from mcp_core import MCPBridge, MCPBridgeConfig
@@ -76,6 +73,24 @@ bridge = MCPBridge(config)
 await bridge.start()
 ```
 
+## Breaking Changes
+
+None - this is the first stable release.
+
+## Known Issues
+
+- Block parsing not fully implemented
+- Item sync not implemented
+- Entity sync not implemented
+
+## Contributors
+
+MnMCP Team
+
+## License
+
+MIT License
+
 ---
 
-**Victoria v3.0-20260605 Phase7 RC**
+**Victoria v3.1-20260605 Phase8 Stable**
