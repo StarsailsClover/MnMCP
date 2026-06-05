@@ -107,6 +107,9 @@ class MCPUnifiedConfig:
     @classmethod
     def from_file(cls, path: str) -> "MCPUnifiedConfig":
         """从 YAML 文件加载配置"""
+        if not YAML_AVAILABLE:
+            return cls.from_env()
+        
         path = Path(path)
         if not path.exists():
             # 创建默认配置文件
@@ -140,8 +143,15 @@ class MCPUnifiedConfig:
     
     def save(self, path: str):
         """保存配置到文件"""
-        with open(path, 'w', encoding='utf-8') as f:
-            yaml.dump(self.to_dict(), f, default_flow_style=False, allow_unicode=True)
+        if YAML_AVAILABLE:
+            import yaml
+            with open(path, 'w', encoding='utf-8') as f:
+                yaml.dump(self.to_dict(), f, default_flow_style=False, allow_unicode=True)
+        else:
+            # Fallback: save as JSON
+            import json
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(self.to_dict(), f, indent=2)
     
     def save_template(self, path: str):
         """保存配置模板（注释说明）"""
