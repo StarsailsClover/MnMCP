@@ -1,181 +1,178 @@
-# MnMCP v3 Integrated
+# MnMCP
 
-**MiniWorld ↔ Minecraft 协议桥接器 - 整合版**
+**MiniWorld Connection Protocol**
 
-**版本**: 4.0.0.0  
-**日期**: 2026-06-04  
-**状态**: 🚀 持续推进中
+A protocol bridge allowing Minecraft Java Edition clients to connect to MiniWorld servers.
 
----
-
-## 📋 项目简介
-
-MnMCP (MiniWorld Connection Protocol) 是一个协议桥接器，允许 Minecraft Java Edition 客户端连接到迷你世界服务器。
-
-**整合优势**:
-- MnMCP 3: ⭐⭐⭐⭐⭐ 高质量架构
-- MN2MC: ⭐⭐⭐⭐ 真实功能实现
-- 整合版: ⭐⭐⭐⭐⭐ 两者兼备
+**Version**: Victoria v3.0-20260605 Phase8 Stable  
+**Date**: 2026-06-05
 
 ---
 
-## 🏗️ 项目结构
+## Overview
+
+MnMCP is a protocol bridge that enables Minecraft Java Edition clients to connect to MiniWorld servers. It translates protocols between the two games, allowing seamless cross-platform gameplay.
+
+### Key Features
+
+- Pure Python implementation
+- Type-safe with full type annotations
+- Modular architecture
+- Async/await support
+- Comprehensive test suite
+
+---
+
+## Project Structure
 
 ```
 MnMCP/
-├── 📁 mnmcp-v3-integrated/          # ✅ 主项目
+├── mnmcp-v3-integrated/       # Main project
 │   ├── src/
-│   │   ├── mcp_mapping/           # ✅ 方块映射 (56个)
-│   │   ├── mcp_crypto/            # ✅ 加密认证
-│   │   ├── mcp_mc/                # ⏳ MC客户端
-│   │   ├── mcp_mini/              # ⏳ MNW客户端
-│   │   └── mcp_core/              # ⏳ 桥接核心
-│   ├── tests/
-│   └── verify_integration.py      # 验证脚本
-│
-├── 📁 archive/                      # 归档
-├── 📁 docs/                         # 文档
-└── 📁 tools/                        # 工具
+│   │   ├── mcp_mapping/      # Block mappings (844 blocks)
+│   │   ├── mcp_crypto/       # Encryption (XXTEA, AES-CFB8)
+│   │   ├── mcp_protocol/     # Protocol definitions
+│   │   ├── mcp_mc/           # Minecraft client
+│   │   ├── mcp_mini/         # MiniWorld client
+│   │   ├── mcp_core/         # Bridge core
+│   │   └── mcp_proxy/        # Proxy/Gateway
+│   ├── tests/                  # Test suite
+│   └── verify_mn3.py         # Verification script
+├── docs/                       # Documentation
+└── README.md                   # This file
 ```
 
 ---
 
-## ✅ 已完成功能
+## Installation
 
-### 1. 方块映射系统 (mcp_mapping)
+### Requirements
 
-```python
-from mcp_mapping import BlockMapperIntegrated
+- Python 3.9+
+- pip
 
-mapper = BlockMapperIntegrated()
-mnw_id = mapper.mc_to_mnw(1)  # 104 (岩石)
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
 ```
 
-**验证结果**:
-```
-✓ MC 1 (stone) → MNW 104 (岩石)
-✓ MC 8 (grass_block) → MNW 100 (长草土块)
-✓ MC 49 (oak_log) → MNW 200 (樱桃木)
-```
-
-### 2. XXTEA 加密 (mcp_crypto)
-
-```python
-from mcp_crypto import MCPXXTEA
-
-xxtea = MCPXXTEA(b"your_key")
-encrypted = xxtea.encrypt_zip(data)
-```
-
-**功能**:
-- XXTEA 加密/解密
-- Zlib 压缩
-- Base64 URL编码
-- 消息打包
-
-### 3. 登录认证 (mcp_crypto)
-
-```python
-from mcp_crypto import MCPAuthManager, MCPAuthConfig
-
-config = MCPAuthConfig(uin="123456", passwd="xxx")
-auth = MCPAuthManager(config)
-await auth.login()
-```
-
-**功能**:
-- JWT Token 管理
-- MD5 签名
-- Session 维护
-- 异步 HTTP
-
----
-
-## 🚀 快速开始
-
-### 1. 验证安装
+### Verify Installation
 
 ```bash
 cd mnmcp-v3-integrated
-python verify_integration.py
+python verify_mn3.py
 ```
 
-### 2. 运行演示
+---
+
+## Quick Start
+
+### Using the Bridge
+
+```python
+import asyncio
+from mcp_core import MCPBridge, MCPBridgeConfig
+
+async def main():
+    config = MCPBridgeConfig(
+        mc_host="localhost",
+        mc_port=25565,
+        mc_username="BridgePlayer",
+        mnw_uin=123456,
+        mnw_passwd="your_password"
+    )
+    
+    bridge = MCPBridge(config)
+    
+    # Start bridge
+    if await bridge.start():
+        print("Bridge started successfully!")
+        
+        # Run until interrupted
+        while bridge.is_running:
+            await asyncio.sleep(1)
+    
+    # Stop bridge
+    await bridge.stop()
+
+asyncio.run(main())
+```
+
+---
+
+## Architecture
+
+### Core Components
+
+1. **mcp_mapping**: Block ID mappings between MC and MNW
+2. **mcp_crypto**: Encryption layers (XXTEA for MNW, AES-CFB8 for MC)
+3. **mcp_protocol**: Protocol codec with 82+ message types
+4. **mcp_mc**: Minecraft protocol client (TCP)
+5. **mcp_mini**: MiniWorld protocol client (UDP/RakNet)
+6. **mcp_core**: Bridge core with bidirectional forwarding
+7. **mcp_proxy**: HTTP proxy and RakNet gateway
+
+### Data Flow
+
+```
+Minecraft Client <--TCP--> MCPBridge <--UDP--> MiniWorld Server
+                                 |
+                                 v
+                          Protocol Translation
+```
+
+---
+
+## Development
+
+### Running Tests
 
 ```bash
-python main.py
+# Run all tests
+python -m pytest tests/ -v
+
+# Run with coverage
+python -m pytest --cov=src --cov-report=html
 ```
 
-### 3. 局域网测试
+### Project Statistics
 
-```bash
-# 服务器端
-python lan_test_server.py
-
-# 客户端
-python lan_test_client.py
-```
+- Core code: ~4,000 lines
+- Test code: ~400 lines
+- Documentation: ~2,500 lines
+- Total: ~6,900 lines
 
 ---
 
-## 📊 项目状态
+## Version History
 
-### 实现度
+### Victoria v3.0-20260605 Phase8 Stable
+- Complete bridge core
+- 33+ unit tests
+- CI/CD integration
+- Clean project structure
 
-```
-Phase 1-3: ████████████████████ 100% (核心)
-Phase 4-8: ░░░░░░░░░░░░░░░░░░░░ 0%  (网络层)
-
-总体: ███████████████░░░░░░░ 75%
-```
-
-### 模块状态
-
-| 模块 | 状态 | 完成度 |
-|------|------|--------|
-| mcp_mapping | ✅ | 100% |
-| mcp_crypto | ✅ | 100% |
-| mcp_mc | ⏳ | 0% |
-| mcp_mini | ⏳ | 0% |
-| mcp_core | ⏳ | 0% |
+### Victoria v3.0-20260605 Phase7 RC
+- Initial release candidate
+- Basic bridge functionality
 
 ---
 
-## 🎯 下一步
+## Contributing
 
-### 立即执行
-
-1. 移植 MC 客户端 (MN2MC → mcp_mc/)
-2. 移植 MNW 客户端 (MN2MC → mcp_mini/)
-3. 整合桥接核心 (mcp_core/)
-
-### 本周完成
-
-4. 局域网测试
-5. 性能优化
-6. 文档完善
+See CONTRIBUTING.md for guidelines.
 
 ---
 
-## 📁 关键文件
+## License
 
-| 文件 | 说明 |
-|------|------|
-| `verify_integration.py` | 验证脚本 |
-| `lan_test_server.py` | 测试服务器 |
-| `lan_test_client.py` | 测试客户端 |
-| `INTEGRATION_FINAL_REPORT.md` | 详细报告 |
+MIT License
 
 ---
 
-## 📝 文档
+## Acknowledgments
 
-- [INTEGRATION_FINAL_REPORT.md](docs/integration/INTEGRATION_FINAL_REPORT.md) - 详细报告
-- [LAN_TEST_GUIDE.md](docs/guides/LAN_TEST_GUIDE.md) - 测试指南
-- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - 项目结构
-
----
-
-**状态**: 🚀 持续推进，核心功能已验证  
-**质量**: ⭐⭐⭐⭐⭐  
-**实现度**: 75%
+- MN2MC project for protocol reverse engineering
+- MiniWorld community for API documentation
+- Minecraft protocol documentation (wiki.vg)

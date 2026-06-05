@@ -1,81 +1,89 @@
-# Victoria v3.0-20260605 Phase7 RC Release Notes
+# Victoria v3.1-20260605 Phase8 RC Release Notes
 
-**版本**: Victoria v3.0-20260605 Phase7 RC  
-**日期**: 2026-06-05  
-**类型**: Release Candidate (RC)  
-**状态**: Pre-Release
-
----
-
-## 版本命名规范
-
-```
-Victoria v3.0-20260605 Phase7 RC
-```
+**Version**: Victoria v3.1-20260605 Phase8 RC  
+**Date**: 2026-06-05  
+**Status**: Release Candidate  
+**Next**: Victoria Stable (after testing)
 
 ---
 
-## 功能清单
+## Overview
 
-### Phase 1-3: 基础层
-- 方块映射系统 (844个映射)
-- XXTEA 加密/解密
-- AES-CFB8 加密 (MC)
-- JWT 认证
-- 统一配置系统
+Victoria v3.1 Phase8 RC is a release candidate with clean project structure and CI/CD integration. This version is ready for testing before the stable release.
 
-### Phase 4-5: 客户端层
-- Minecraft 客户端 (TCP/MC协议)
-- MiniWorld 客户端 (UDP/RakNet)
-- 纯 Python 实现
-- 100% 类型注解
-- 统一事件系统
+## Changes from Phase 7 RC
 
-### Phase 6: 桥接核心
-- MCPBridge 核心
-- 双向数据转发
-- 20Hz 位置同步
-- 坐标转换 (Yaw映射)
+### Project Cleanup
+- Added comprehensive .gitignore
+- Removed redundant files from tracking
+- Organized project structure
+- Cleaned up documentation
 
-### Phase 7: 测试层
-- 测试基础设施
-- 单元测试 (33+ 用例)
-- pytest 配置
+### CI/CD
+- Added GitHub Actions workflow
+- Configured Python 3.9-3.12 testing
+- Added coverage reporting
+- Added linting (flake8, mypy)
+
+### Documentation
+- Rewrote README without emoji
+- Added CONTRIBUTING.md
+- Added CHANGELOG.md
+- Updated RELEASE_NOTES
+
+## Files Not in GitHub (via .gitignore)
+
+### Development Resources
+- 09-MnMCP-DevResources/
+- 03-MnMCP-Protocol-Bridge/
+
+### Version Update Docs
+- PHASE*_EXECUTION_*.md
+- PHASE*_PROGRESS_*.md
+- MN3_*_REPORT.md
+- INTEGRATION_*.md
+
+### Archives
+- archive/
+- mnmcp-v2/
+
+### Security
+- .env
+- config.yaml
+
+## Installation
+
+```bash
+git clone https://github.com/StarsailsClover/MnMCP.git
+cd MnMCP/mnmcp-v3-integrated
+pip install -r requirements.txt
+python verify_mn3.py
+```
+
+## Testing
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Check coverage
+python -m pytest --cov=src --cov-report=html
+```
+
+## Roadmap to Stable
+
+| Task | Status | Target |
+|------|--------|--------|
+| Phase 8 RC | Done | 2026-06-05 |
+| Testing | Pending | Next |
+| Bug fixes | Pending | Next |
+| Victoria Stable | Pending | After testing |
+
+## Known Issues
+
+See CHANGELOG.md for known issues.
 
 ---
 
-## 代码统计
-
-```
-核心代码:     ~4,000 行
-测试代码:       ~400 行
-文档:         ~2,500 行
-───────────────────────
-总计:         ~7,400 行
-
-模块数:       10+ 核心模块
-测试用例:     33+ 单元测试
-```
-
----
-
-## 快速开始
-
-```python
-from mcp_core import MCPBridge, MCPBridgeConfig
-
-config = MCPBridgeConfig(
-    mc_host="localhost",
-    mc_port=25565,
-    mc_username="BridgePlayer",
-    mnw_uin=123456,
-    mnw_passwd="password"
-)
-
-bridge = MCPBridge(config)
-await bridge.start()
-```
-
----
-
-**Victoria v3.0-20260605 Phase7 RC**
+**Victoria v3.1-20260605 Phase8 RC**  
+*Release Candidate - Testing in Progress*

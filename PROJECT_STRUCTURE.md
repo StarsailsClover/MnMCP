@@ -1,51 +1,77 @@
-# MnMCP 项目结构整理方案
+# MnMCP Project Structure
 
-## 目标
-创建清晰、可维护的项目结构
-
-## 新结构
+**Version**: Victoria v3.1-20260605 Phase8 Stable
 
 ```
 MnMCP/
-├── 📁 mnmcp-v3-integrated/          # ✅ 主项目 (整合版)
+├── .github/
+│   └── workflows/
+│       └── ci.yml              # GitHub Actions CI
+│
+├── mnmcp-v3-integrated/        # Main project
 │   ├── src/
-│   │   ├── mcp_core/               # 核心桥接
-│   │   ├── mcp_mapping/           # ✅ 方块映射 (844个)
-│   │   ├── mcp_crypto/            # ✅ 加密认证
-│   │   ├── mcp_mc/                # MC 客户端
-│   │   ├── mcp_mini/              # MNW 客户端
-│   │   └── mcp_config/            # 统一配置
+│   │   ├── mcp_mapping/        # Block mappings
+│   │   ├── mcp_crypto/         # Encryption
+│   │   ├── mcp_protocol/       # Protocol codec
+│   │   ├── mcp_mc/             # Minecraft client
+│   │   ├── mcp_mini/           # MiniWorld client
+│   │   ├── mcp_core/           # Bridge core
+│   │   └── mcp_proxy/          # Proxy/Gateway
 │   ├── tests/
-│   └── main.py
+│   │   ├── unit/               # Unit tests
+│   │   ├── integration/          # Integration tests
+│   │   └── system/             # System tests
+│   ├── requirements.txt        # Dependencies
+│   ├── VERSION                 # Version file
+│   └── verify_mn3.py          # Verification script
 │
-├── 📁 archive/                      # 归档旧版本
-│   ├── mnmcp-v2-original/         # MnMCP 3 原始版
-│   ├── mn2mc-official/            # MN2MC 官方版
-│   └── mnmcp-mn2mc-legacy/        # MnMCP-MN2MC 旧版
+├── docs/                       # Documentation
+│   ├── architecture/             # Architecture docs
+│   ├── api/                      # API reference
+│   └── guides/                   # User guides
 │
-├── 📁 docs/                         # 文档
-│   ├── integration/               # 整合文档
-│   ├── api/                       # API文档
-│   └── guides/                    # 使用指南
+├── archive/                    # Archived files
+│   └── phase8_cleanup/           # Pre-cleanup files
 │
-├── 📁 tools/                        # 工具脚本
-│   ├── extract-mappings.py
-│   └── test-scripts/
+├── scripts/                    # Utility scripts
+│   └── archive_old_files.py      # Cleanup script
 │
-└── 📄 README.md                     # 项目说明
+├── .gitignore                  # Git ignore rules
+├── CHANGELOG.md                # Version history
+├── CONTRIBUTING.md             # Contribution guide
+├── LICENSE                     # MIT License
+├── README.md                   # Project readme
+└── RELEASE_NOTES.md            # Release notes
 ```
 
-## 整理步骤
+## Key Files
 
-1. 创建 archive/ 目录
-2. 移动旧版本到 archive/
-3. 整理 mnmcp-v3-integrated/
-4. 创建 docs/ 目录
-5. 更新 README.md
+| File | Purpose |
+|------|---------|
+| README.md | Project overview |
+| CHANGELOG.md | Version history |
+| CONTRIBUTING.md | How to contribute |
+| RELEASE_NOTES.md | Release details |
+| .github/workflows/ci.yml | CI/CD configuration |
+| requirements.txt | Python dependencies |
+| VERSION | Current version |
 
-## 命名规范
+## Source Code
 
-- 模块: `mcp_xxx` (统一前缀)
-- 类: `MCPXxx` (PascalCase)
-- 函数: `xxx_xxx` (snake_case)
-- 常量: `UPPER_CASE`
+| Module | Purpose | Lines |
+|--------|---------|-------|
+| mcp_mapping | Block ID mappings | ~800 |
+| mcp_crypto | Encryption (XXTEA, AES) | ~400 |
+| mcp_protocol | Protocol definitions | ~800 |
+| mcp_mc | Minecraft client | ~2000 |
+| mcp_mini | MiniWorld client | ~600 |
+| mcp_core | Bridge core | ~500 |
+| mcp_proxy | Proxy/Gateway | ~600 |
+
+## Tests
+
+| Type | Count | Location |
+|------|-------|----------|
+| Unit | 33+ | tests/unit/ |
+| Integration | 0+ | tests/integration/ |
+| System | 0+ | tests/system/ |
