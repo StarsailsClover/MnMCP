@@ -1,38 +1,49 @@
-# MnMCP .gitignore
-# Only keep essential open source files
+# MnMCP - Essential Open Source Only
+# Keep: core code, tests, main docs, CI/CD
+# Remove: caches, dev resources, old versions
 
-# Python
+# Python cache (CRITICAL - never commit)
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
 *.egg-info/
-dist/
+*.egg
+.pytest_cache/
+
+# Build artifacts
 build/
+dist/
+*.spec
 
 # Virtual environments
 venv/
 .venv/
 env/
+ENV/
 
 # IDE
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
 
-# Testing
+# Testing coverage
 .coverage
-.pytest_cache/
 htmlcov/
+.tox/
 
 # Logs
 *.log
 logs/
+log/
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Development resources (not for open source)
 09-MnMCP-DevResources/
@@ -40,27 +51,42 @@ Thumbs.db
 
 # Old versions
 mnmcp-v2/
+mnmcp-v1/
 
-# Large files
+# Archive
+archive/
+backup_*/
+*_backup/
+
+# Large binary files
 *.zip
 *.tar.gz
+*.tar
+*.rar
 *.pcapng
 *.pcap
 *.apk
 *.dex
+*.so
+*.dll
+*.exe
 
-# Security
+# Security files (never commit)
 .env
 .env.local
+.env.*
 *.key
 *.pem
+*.p12
+*.pfx
+secrets/
 config.yaml
 config.json
+config.ini
+!config.template.yaml
+!config.template.json
 
-# Archives
-archive/
-
-# Version docs (only keep RELEASE_NOTES.md)
+# Version docs (only keep README, RELEASE_NOTES, CHANGELOG, CONTRIBUTING, LICENSE)
 PHASE*.md
 00_MN3_*.md
 BEST_*.md
@@ -76,7 +102,22 @@ MN3_*.md
 PROGRESS_*.md
 PROJECT_STRUCTURE.md
 QUICK_REFERENCE.md
+WORKSPACE_*.md
+BLOCK_ID_TOOLS_README.md
+DEPLOYMENT_GUIDE.md
 
-# Temporary
+# Temporary files
 *.tmp
 *.bak
+*.old
+*.orig
+*.rej
+
+# Documentation drafts
+drafts/
+notes/
+
+# Flutter/Android (if any)
+android/
+ios/
+*.gradle/
