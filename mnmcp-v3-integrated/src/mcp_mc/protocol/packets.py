@@ -16,7 +16,7 @@ from .types import (
 
 
 class PacketID(IntEnum):
-    """数据包 ID (MC 1.19.2)"""
+    """数据包 ID (MC 1.20.6)"""
     # 握手
     HANDSHAKE = 0x00
     
@@ -203,7 +203,7 @@ class MCPacket:
 @dataclass
 class HandshakePacket(MCPacket):
     """握手数据包"""
-    protocol_version: int = 760  # 1.19.2
+    protocol_version: int = 766  # 1.20.6
     server_address: str = "localhost"
     server_port: int = 25565
     next_state: int = 2  # 2=Login

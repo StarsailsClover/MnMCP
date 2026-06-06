@@ -59,8 +59,8 @@ class MCClientConfig:
     port: int = 25565
     username: str = "MnMCPPlayer"
     
-    # 协议
-    protocol_version: int = 760  # 1.19.2
+    # 协议 - MC 1.20.6
+    protocol_version: int = 766
     
     # 连接
     connect_timeout: float = 10.0
