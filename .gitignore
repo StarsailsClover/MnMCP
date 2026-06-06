@@ -1,8 +1,8 @@
 # MnMCP - Essential Open Source Only
-# Keep: core code, tests, main docs, CI/CD
-# Remove: caches, dev resources, old versions
+# Keep: core code, main docs, CI/CD
+# Remove: all other docs, scripts, dev resources
 
-# Python cache (CRITICAL - never commit)
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
@@ -45,9 +45,10 @@ log/
 Thumbs.db
 desktop.ini
 
-# Development resources (not for open source)
+# Development resources
 09-MnMCP-DevResources/
 03-MnMCP-Protocol-Bridge/
+MnMCP-Protocol/
 
 # Old versions
 mnmcp-v2/
@@ -58,7 +59,7 @@ archive/
 backup_*/
 *_backup/
 
-# Large binary files
+# Large files
 *.zip
 *.tar.gz
 *.tar
@@ -71,7 +72,7 @@ backup_*/
 *.dll
 *.exe
 
-# Security files (never commit)
+# Security files
 .env
 .env.local
 .env.*
@@ -82,9 +83,6 @@ backup_*/
 secrets/
 config.yaml
 config.json
-config.ini
-!config.template.yaml
-!config.template.json
 
 # Version docs (only keep README, RELEASE_NOTES, CHANGELOG, CONTRIBUTING, LICENSE)
 PHASE*.md
@@ -105,6 +103,12 @@ QUICK_REFERENCE.md
 WORKSPACE_*.md
 BLOCK_ID_TOOLS_README.md
 DEPLOYMENT_GUIDE.md
+TEST_*.md
+clean_repo.py
+
+# Scripts (keep only essential)
+scripts/
+!scripts/__init__.py
 
 # Temporary files
 *.tmp
@@ -117,7 +121,12 @@ DEPLOYMENT_GUIDE.md
 drafts/
 notes/
 
-# Flutter/Android (if any)
+# Flutter/Android
 android/
 ios/
 *.gradle/
+
+# CI/CD artifacts
+.nojekyll
+.github/workflows/*.yml
+!.github/workflows/ci.yml
