@@ -1,132 +1,74 @@
-# MnMCP - Essential Open Source Only
-# Keep: core code, main docs, CI/CD
-# Remove: all other docs, scripts, dev resources
+# MnMCP - Minimal Open Source
 
 # Python cache
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
 .Python
 *.egg-info/
-*.egg
-.pytest_cache/
 
 # Build artifacts
 build/
 dist/
-*.spec
 
 # Virtual environments
 venv/
 .venv/
-env/
-ENV/
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
 
-# Testing coverage
+# Testing
 .coverage
 htmlcov/
-.tox/
+.pytest_cache/
 
 # Logs
 *.log
 logs/
-log/
 
 # OS files
 .DS_Store
 Thumbs.db
-desktop.ini
 
 # Development resources
 09-MnMCP-DevResources/
 03-MnMCP-Protocol-Bridge/
 MnMCP-Protocol/
+archive/
 
 # Old versions
 mnmcp-v2/
-mnmcp-v1/
-
-# Archive
-archive/
-backup_*/
-*_backup/
 
 # Large files
 *.zip
 *.tar.gz
-*.tar
-*.rar
 *.pcapng
-*.pcap
 *.apk
-*.dex
-*.so
-*.dll
-*.exe
 
 # Security files
 .env
-.env.local
-.env.*
 *.key
-*.pem
-*.p12
-*.pfx
 secrets/
-config.yaml
-config.json
 
-# Version docs (only keep README, RELEASE_NOTES, CHANGELOG, CONTRIBUTING, LICENSE)
-PHASE*.md
-00_MN3_*.md
-BEST_*.md
-CODE_*.md
-COMPLETION_*.md
-DEVELOPMENT_*.md
-FINAL_*.md
-HANDOVER_*.md
-INTEGRATION_*.md
-LAN_TEST_*.md
-MN2MC_*.md
-MN3_*.md
-PROGRESS_*.md
-PROJECT_STRUCTURE.md
-QUICK_REFERENCE.md
-WORKSPACE_*.md
-BLOCK_ID_TOOLS_README.md
-DEPLOYMENT_GUIDE.md
-TEST_*.md
-clean_repo.py
+# Local-only directories
+docs/project/
+scripts/dev/
+scripts/tools/
+src/
+tools/
 
-# Scripts (keep only essential)
-scripts/
-!scripts/__init__.py
+# Web files (local)
+icon.png
+index.html
+script.js
+style.css
+*.png
 
-# Temporary files
+# Temporary
 *.tmp
 *.bak
-*.old
-*.orig
-*.rej
 
-# Documentation drafts
-drafts/
-notes/
-
-# Flutter/Android
-android/
-ios/
-*.gradle/
-
-# CI/CD artifacts
+# CI artifacts
 .nojekyll
-.github/workflows/*.yml
-!.github/workflows/ci.yml
