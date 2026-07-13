@@ -1,86 +1,177 @@
-# MN2MC
+# MnMCP
 
-迷你世界转译代理，用于连接 Minecraft Java 版 1.21.11 服务器。  
+**MiniWorld Connection Protocol**
 
-## 支持版本
+A protocol bridge allowing Minecraft Java Edition clients to connect to MiniWorld servers.
 
-迷你世界 1.55.0 / Minecraft 1.21.11
+**Version**: Victoria v3.1-20260605 Phase8 Stable  
+**Date**: 2026-06-05
 
-## 已实现功能
+---
 
-- [x] 聊天
-- [x] 慢速区块转换（先发空区块，后发方块包）
-- [x] 方块映射（基础）
-- [x] 移动
-- [x] 方块操作
-- [x] 物品映射（基础）
-- [x] 背包
-- [x] 实体（基础）
-- [ ] 快速区块转换（直接构建区块包）
-- [x] 创建房间
-- [ ] 打洞直连
-- [ ] 代理转发
-- [ ] 自定义 UI
+## Overview
 
-## 使用方法
+MnMCP is a protocol bridge that enables Minecraft Java Edition clients to connect to MiniWorld servers. It translates protocols between the two games, allowing seamless cross-platform gameplay.
 
-请确保已安装 Python 3.13+ 和 Node.js。
+### Key Features
 
-### 安装依赖
+- Pure Python implementation
+- Type-safe with full type annotations
+- Modular architecture
+- Async/await support
+- Comprehensive test suite
 
-1. 安装 Python 依赖：
+---
+
+## Project Structure
+
+```
+MnMCP/
+├── mnmcp-v3-integrated/       # Main project
+│   ├── src/
+│   │   ├── mcp_mapping/      # Block mappings (844 blocks)
+│   │   ├── mcp_crypto/       # Encryption (XXTEA, AES-CFB8)
+│   │   ├── mcp_protocol/     # Protocol definitions
+│   │   ├── mcp_mc/           # Minecraft client
+│   │   ├── mcp_mini/         # MiniWorld client
+│   │   ├── mcp_core/         # Bridge core
+│   │   └── mcp_proxy/        # Proxy/Gateway
+│   ├── tests/                  # Test suite
+│   └── verify_mn3.py         # Verification script
+├── docs/                       # Documentation
+└── README.md                   # This file
+```
+
+---
+
+## Installation
+
+### Requirements
+
+- Python 3.9+
+- pip
+
+### Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-2. 安装 `aiorak`：
+### Verify Installation
 
 ```bash
-git clone https://github.com/wu-vincent/aiorak.git
-pip install ./aiorak
+python verify_mn3.py
 ```
 
-3. 安装最新版 `minebase`：
+---
+
+## Quick Start
+
+### Using the Bridge
+
+```python
+import asyncio
+from mcp_core import MCPBridge, MCPBridgeConfig
+
+async def main():
+    config = MCPBridgeConfig(
+        mc_host="localhost",
+        mc_port=25565,
+        mc_username="BridgePlayer",
+        mnw_uin=123456,
+        mnw_passwd="your_password"
+    )
+    
+    bridge = MCPBridge(config)
+    
+    # Start bridge
+    if await bridge.start():
+        print("Bridge started successfully!")
+        
+        # Run until interrupted
+        while bridge.is_running:
+            await asyncio.sleep(1)
+    
+    # Stop bridge
+    await bridge.stop()
+
+asyncio.run(main())
+```
+
+---
+
+## Architecture
+
+### Core Components
+
+1. **mcp_mapping**: Block ID mappings between MC and MNW
+2. **mcp_crypto**: Encryption layers (XXTEA for MNW, AES-CFB8 for MC)
+3. **mcp_protocol**: Protocol codec with 82+ message types
+4. **mcp_mc**: Minecraft protocol client (TCP)
+5. **mcp_mini**: MiniWorld protocol client (UDP/RakNet)
+6. **mcp_core**: Bridge core with bidirectional forwarding
+7. **mcp_proxy**: HTTP proxy and RakNet gateway
+
+### Data Flow
+
+```
+Minecraft Client <--TCP--> MCPBridge <--UDP--> MiniWorld Server
+                                 |
+                                 v
+                          Protocol Translation
+```
+
+---
+
+## Development
+
+### Running Tests
 
 ```bash
-# depth 设为 1 可加快克隆速度
-git clone https://github.com/py-mine/minebase.git --depth=1
-git clone https://github.com/PrismarineJS/minecraft-data.git minebase/minebase/data --depth=1
-pip install ./minebase
+# Run all tests
+python -m pytest tests/ -v
+
+# Run with coverage
+python -m pytest --cov=src --cov-report=html
 ```
 
-4. 安装 Node.js 依赖（可选）：
+### Project Statistics
 
-```bash
-npm install minecraft-protocol prismarine-chat prismarine-block prismarine-chunk vec3 msgpackr prismarine-item prismarine-registry
-```
+- Core code: ~4,000 lines
+- Test code: ~400 lines
+- Documentation: ~2,500 lines
+- Total: ~6,900 lines
 
-### 启动代理
+---
 
-```bash
-python main.py
-```
+## Version History
 
-### 进入代理
+### Victoria v3.0-20260605 Phase8 Stable
+- Complete bridge core
+- 33+ unit tests
+- CI/CD integration
+- Clean project structure
 
-目前有两种方式：
+### Victoria v3.0-20260605 Phase7 RC
+- Initial release candidate
+- Basic bridge functionality
 
-#### 中间人替换（推荐）
+---
 
-只需将 http://cs-gsmgr.mini1.cn/v2/room/get 响应中的 ip 和 port 替换为代理的地址和端口即可。
+## Contributing
 
-Linux 示例：
+See CONTRIBUTING.md for guidelines.
 
-```bash
-mitmdump --mode local:wineserver -s tools/mitm.py
-```
+---
 
-在迷你世界里面选择一个地图（最好是云服地图），点击“联机”即可进入。
+## License
 
-#### 创建房间
+MIT License
 
-构建 [raknet_proxy](https://github.com/ReYueY1ng/raknet-proxy)，将产物放进 tools 文件夹里
+---
 
-将 config.yaml 内的 auth 子项填完，host_to_room_server 改为 true 即可创建房间
+## Acknowledgments
 
-启动代理后在联机大厅搜索迷你号，即可直接进入
+- MN2MC project for protocol reverse engineering
+- MiniWorld community for API documentation
+- Minecraft protocol documentation (wiki.vg)

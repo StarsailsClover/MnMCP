@@ -1,0 +1,107 @@
+# Clash Meta Config - MnMCP v3.0
+# Intercept MiniWorld API requests and redirect to local fake server
+
+# Basic Config
+port: 7890
+socks-port: 7891
+mixed-port: 7892
+allow-lan: true
+bind-address: '*'
+mode: rule
+log-level: info
+external-controller: 127.0.0.1:9090
+secret: ''
+
+# DNS 配置
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  
+  # 不要 fake-ip 这些域名
+  fake-ip-filter:
+    - '*.lan'
+    - 'localhost.ptlogin2.qq.com'
+    - '+.srv.nintendo.net'
+    - '+.stun.playstation.net'
+    - 'xbox.*.microsoft.com'
+    - '+.xboxlive.com'
+  
+  # 真实DNS服务器
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+    - 114.114.114.114
+  
+  # 备用DNS
+  fallback:
+    - 8.8.8.8
+    - 1.1.1.1
+  
+  # 域名映射 (关键配置)
+  nameserver-policy:
+    # 将迷你世界API域名解析到本地
+    'openroom.mini1.cn': '127.0.0.1'
+    'chatpush.mini1.cn': '127.0.0.1'
+    'certification.mini1.cn': '127.0.0.1'
+
+# 代理配置
+proxies:
+  # 本地 MnMCP API 服务器
+  - name: "MnMCP-API"
+    type: http
+    server: 127.0.0.1
+    port: 8080
+    
+  # 直连
+  - name: "DIRECT"
+    type: direct
+
+# 代理组
+proxy-groups:
+  # 迷你世界流量组
+  - name: "MiniWorld"
+    type: select
+    proxies:
+      - MnMCP-API
+      - DIRECT
+  
+  # 默认流量组
+  - name: "Default"
+    type: select
+    proxies:
+      - DIRECT
+
+# 路由规则
+rules:
+  # === 迷你世界API拦截 (关键规则) ===
+  
+  # 房间API - 重定向到本地
+  - DOMAIN,openroom.mini1.cn,MnMCP-API
+  - DOMAIN-SUFFIX,openroom.mini1.cn,MnMCP-API
+  
+  # 聊天推送API - 重定向到本地
+  - DOMAIN,chatpush.mini1.cn,MnMCP-API
+  - DOMAIN-SUFFIX,chatpush.mini1.cn,MnMCP-API
+  
+  # 认证API - 重定向到本地
+  - DOMAIN,certification.mini1.cn,MnMCP-API
+  - DOMAIN-SUFFIX,certification.mini1.cn,MnMCP-API
+  
+  # === 其他迷你世界域名 - 直连 ===
+  - DOMAIN-SUFFIX,mini1.cn,DIRECT
+  - DOMAIN-SUFFIX,minitech.cn,DIRECT
+  
+  # === 本地网络 - 直连 ===
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - IP-CIDR,172.16.0.0/12,DIRECT
+  
+  # === Minecraft 多播 - 直连 ===
+  - IP-CIDR,224.0.0.0/4,DIRECT
+  
+  # === 默认规则 ===
+  - MATCH,DIRECT

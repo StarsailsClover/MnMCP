@@ -1,0 +1,71 @@
+# Clash Meta 配置 - MnMCP 联机代理
+# 用于将迷你世界流量路由到 Minecraft 服务器
+
+# 基础配置
+port: 7890
+socks-port: 7891
+allow-lan: true
+mode: rule
+log-level: info
+external-controller: 127.0.0.1:9090
+
+# DNS 配置
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  fallback:
+    - 8.8.8.8
+    - 1.1.1.1
+
+# 代理配置
+proxies:
+  # Minecraft 服务器直连
+  - name: "MC-Direct"
+    type: direct
+  
+  # 迷你世界服务器（用于房间注册）
+  - name: "MNW-Server"
+    type: http
+    server: 127.0.0.1
+    port: 7890
+
+# 代理组
+proxy-groups:
+  - name: "MnMCP-Bridge"
+    type: select
+    proxies:
+      - MC-Direct
+      - DIRECT
+  
+  - name: "MNW-Services"
+    type: select
+    proxies:
+      - DIRECT
+      - MNW-Server
+
+# 路由规则
+rules:
+  # Minecraft 服务器流量
+  - DOMAIN-SUFFIX,minecraft.net,MC-Direct
+  - DOMAIN-SUFFIX,mojang.com,MC-Direct
+  - DST-PORT,25565,MC-Direct
+  - DST-PORT,19132,MC-Direct
+  
+  # 迷你世界服务器流量
+  - DOMAIN-SUFFIX,mini1.cn,MNW-Services
+  - DOMAIN-SUFFIX,minitech.cn,MNW-Services
+  - DST-PORT,19701,MNW-Services
+  - DST-PORT,19601,MNW-Services
+  - DST-PORT,4012,MNW-Services
+  
+  # 本地流量直连
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  
+  # 默认规则
+  - MATCH,DIRECT

@@ -1,0 +1,124 @@
+# MnMCP 联机模块配置文件
+# v0.3.0_26w09b_Phase 7
+#
+# 部署模式: streamer(服务器端) / personal(客户端)
+# 房主角色: miniworld_host(场景A) / mc_host(场景B) / relay_host(场景C)
+
+deploy_mode: "personal"
+host_role: "relay_host"
+
+# ============================================================
+# 中继服务器配置
+# 使用者可自定义中继服务器地址（本地或远程）
+# ============================================================
+relay_server:
+  # 中继服务器地址
+  # 本地: "127.0.0.1"
+  # 远程: 填写你的服务器IP或域名，如 "my-server.com"
+  host: "127.0.0.1"
+  
+  # MC协议端口（MC客户端连接此端口）
+  mc_port: 25565
+  
+  # MNW协议端口（迷你世界流量转发到此端口）
+  mnw_port: 19132
+  
+  # 管理API端口
+  api_port: 8081
+  
+  # WebSocket端口
+  ws_port: 8082
+  
+  # 最大连接数
+  max_clients: 40
+  
+  # SSL/TLS（远程部署建议启用）
+  use_ssl: false
+  ssl_cert: ""
+  ssl_key: ""
+  
+  # 连接超时（秒）
+  connection_timeout: 30.0
+  
+  # 心跳间隔（秒）
+  heartbeat_interval: 15.0
+
+# ============================================================
+# VPN虚拟网段配置
+# 用于捕获迷你世界网络流量
+# ============================================================
+vpn:
+  enabled: true
+  
+  # 虚拟网段地址
+  tun_address: "10.8.0.1"
+  tun_netmask: "255.255.255.0"
+  tun_name: "mnmcp_tun0"
+  
+  # 迷你世界云服地址（自动路由到VPN）
+  mnw_cloud_servers:
+    - "183.60.230.67"
+    - "183.36.42.103"
+    - "120.236.197.36"
+    - "cn-logic4.mini1.cn"
+    - "wskacchm.mini1.cn"
+  
+  # 迷你世界云服端口
+  mnw_cloud_ports:
+    - 4000
+    - 4012
+    - 8080
+  
+  # 捕获缓冲区大小
+  capture_buffer_size: 65536
+  
+  # 捕获模式: duplicate(一式两份/场景A) / intercept(拦截修改/场景B,C)
+  capture_mode: "duplicate"
+
+# ============================================================
+# 迷你世界配置
+# ============================================================
+miniworld:
+  version: "1.53.1"
+  region: "CN"
+  auth_host: "mwu-api-pre.mini1.cn"
+  auth_port: 443
+  lobby_host: "cn-logic4.mini1.cn"
+  lobby_port: 4012
+  encryption_mode: "AES-128-CBC"
+
+# ============================================================
+# Minecraft配置
+# ============================================================
+minecraft:
+  version: "1.20.6"
+  protocol_version: 766
+  server_host: "127.0.0.1"
+  server_port: 25565
+  bedrock_port: 19132
+  auth_mode: "offline"
+
+# ============================================================
+# 协议翻译配置
+# ============================================================
+protocol:
+  block_mapping_file: "data/mnw_block_mapping_from_go.json"
+  enable_coordinate_conversion: true
+  coordinate_scale: 1.0
+  x_axis_invert: true
+  enable_compression: false
+  enable_encryption: false
+
+# ============================================================
+# 日志配置
+# ============================================================
+logging:
+  level: "INFO"
+  file: "logs/mnmcp_multiplayer.log"
+  console: true
+  max_size: 10485760
+  backup_count: 5
+
+# 版本信息
+version: "0.3.0"
+phase: "Phase 7"

@@ -365,3 +365,19 @@ config.yaml
 logs/
 resources/
 tools/raknet_proxy
+
+# Large dev resources (not for version control)
+09-MnMCP-DevResources/
+MnMCP-Protocol/
+
+# Old versions
+mnmcp-v2/
+mnmcp-v3-integrated/
+mnmcp-v3-integrated.zip
+
+# Presentation assets
+slide_01_cover.png
+
+# Root-level web assets (duplicated in docs/)
+style.css
+script.js
